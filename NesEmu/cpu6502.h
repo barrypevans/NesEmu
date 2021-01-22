@@ -7,7 +7,7 @@
 class Cpu6502
 {
 public:
-	Cpu6502(Bus* pBus);
+	Cpu6502(Bus* pCpuBus, Bus* pPpuBus);
 	~Cpu6502();
 	
 	void Tick();
@@ -82,6 +82,7 @@ public:
 	uint8_t XXX();
 
 	static Instruction kInstructions[256];
-	Bus* m_pBus;
+	Bus* m_pCpuBus;
+	Bus* m_pPpuBus;
 };
 

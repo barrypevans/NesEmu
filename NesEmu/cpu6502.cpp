@@ -1,9 +1,10 @@
 #include "cpu6502.h"
 #include <stdlib.h>
 
-Cpu6502::Cpu6502(Bus * pBus)
+Cpu6502::Cpu6502(Bus* pCpuBus, Bus* pPpuBus)
 {
-	m_pBus = pBus;
+	m_pCpuBus = pCpuBus;
+	m_pPpuBus = pPpuBus;
 	Reset();
 }
 
@@ -28,7 +29,7 @@ void Cpu6502::Reset()
 
 	// initial program counter adderess is always storead at 0xFFFC
 	const uint16_t pcInitAddr = 0xFFFC;
-	pc = m_pBus->Read16(pcInitAddr);
+	pc = m_pCpuBus->Read16(pcInitAddr);
 
 	// reset helper state
 	currentOpCode = 0x00;
@@ -47,7 +48,7 @@ uint8_t Cpu6502::FetchData()
 	if (kInstructions[currentOpCode].addrmode == &Cpu6502::IMP)
 		return A;
 
-	return m_pBus->Read(absoluteAddr);
+	return m_pCpuBus->Read(absoluteAddr);
 }
 
 /*
@@ -80,7 +81,7 @@ void Cpu6502::Tick()
 {
 	if (remainingCycles == 0)
 	{
-		currentOpCode = m_pBus->Read(pc++);
+		currentOpCode = m_pCpuBus->Read(pc++);
 
 		Instruction instruction = kInstructions[currentOpCode];
 
