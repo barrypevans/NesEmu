@@ -24,7 +24,8 @@ uint8_t Bus::Read(uint16_t addr)
 	}
 	// Subtract the virtual offset from the proposed address to read from the correct position in the 
 	// memory device's virtual address space
-	return memoryDeviceMapping.m_pDevice->Read(addr - memoryDeviceMapping.m_virtualBusOffset);
+	uint16_t finalAddr = memoryDeviceMapping.m_pDevice->UseVirtualAddressSpace() ? addr - memoryDeviceMapping.m_virtualBusOffset : addr;
+	return memoryDeviceMapping.m_pDevice->Read(finalAddr);
 }
 
 uint16_t Bus::Read16(uint16_t addr)
@@ -43,7 +44,8 @@ bool Bus::Write(uint16_t addr, uint8_t data)
 
 	// Subtract the virtual offset from the proposed address to read from the correct position in the 
 	// memory device's virtual address space
-	memoryDeviceMapping.m_pDevice->Write(addr - memoryDeviceMapping.m_virtualBusOffset, data);
+	uint16_t finalAddr = memoryDeviceMapping.m_pDevice->UseVirtualAddressSpace() ? addr - memoryDeviceMapping.m_virtualBusOffset : addr;
+	memoryDeviceMapping.m_pDevice->Write(finalAddr, data);
 	return true;
 }
 

@@ -86,10 +86,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Cartridge.cpp" />
     <ClCompile Include="DisassemblyWidget.cpp" />
     <ClCompile Include="MemoryWidget.cpp" />
     <ClCompile Include="Nes.cpp" />
     <ClCompile Include="opcodes.cpp" />
+    <ClCompile Include="ppu2C02.cpp" />
     <ClCompile Include="Ram.cpp" />
     <QtRcc Include="NesEmu.qrc" />
     <QtUic Include="NesEmu.ui" />
@@ -101,11 +103,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h" />
+    <ClInclude Include="Cartridge.h" />
     <ClInclude Include="cpu6502.h" />
     <ClInclude Include="DisassemblyWidget.h" />
+    <ClInclude Include="IMapper.h" />
     <ClInclude Include="IMemoryDevice.h" />
+    <ClInclude Include="INesFile.h" />
     <ClInclude Include="MemoryWidget.h" />
     <ClInclude Include="Nes.h" />
+    <ClInclude Include="ppu2C02.h" />
     <ClInclude Include="Ram.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

@@ -13,6 +13,7 @@ public:
 	virtual uint8_t Read(uint16_t addr) override;
 	virtual bool Write(uint16_t addr, uint8_t data) override;
 	virtual uint16_t GetSize() override;
+	virtual bool UseVirtualAddressSpace() override { return true; }
 
 private:
 	uint8_t* m_memory;
@@ -20,3 +21,7 @@ private:
 
 };
 
+class Rom : public Ram
+{
+	virtual bool Write(uint16_t addr, uint8_t data) override;
+};

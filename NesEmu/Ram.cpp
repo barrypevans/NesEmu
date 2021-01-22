@@ -43,3 +43,8 @@ uint16_t Ram::GetSize()
 {
 	return m_size;
 }
+
+bool Rom::Write(uint16_t addr, uint8_t data)
+{
+	return false;
+}

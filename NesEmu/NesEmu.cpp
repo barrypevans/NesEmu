@@ -83,7 +83,7 @@ void NesEmu::UploadProgram()
 
 			m_pDisassemblyWidget->SetDissasembly(bin, dataLength);
 
-			m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pBus);
+			m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
 
 			setWindowTitle(kTitle.arg(filename));
 		}
@@ -93,7 +93,7 @@ void NesEmu::UploadProgram()
 void NesEmu::Tick()
 {
 	m_pNes->Tick();
-	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pBus);
+	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
 	// Breakpoint hit
 	if (m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc))
 	{
@@ -104,7 +104,7 @@ void NesEmu::Tick()
 void NesEmu::Reset()
 {
 	m_pNes->Reset();
-	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pBus);
+	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
 	m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc);
 }
 

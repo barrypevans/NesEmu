@@ -24,19 +24,19 @@ void Cpu6502::Irq()
 {
 	if (GetFlag(I))
 	{
-		m_pBus->Write(0x0100 + sp, (pc >> 8) & 0x00FF);
+		m_pCpuBus->Write(0x0100 + sp, (pc >> 8) & 0x00FF);
 		sp--;
-		m_pBus->Write(0x0100 + sp, pc & 0x00FF);
+		m_pCpuBus->Write(0x0100 + sp, pc & 0x00FF);
 		sp--;
 
 		SetFlag(B, false);
 		SetFlag(U, true);
 		SetFlag(I, true);
-		m_pBus->Write(0x0100 + sp, status);
+		m_pCpuBus->Write(0x0100 + sp, status);
 		sp--;
 
 		absoluteAddr = 0XFFFE;
-		pc = m_pBus->Read16(absoluteAddr);
+		pc = m_pCpuBus->Read16(absoluteAddr);
 
 		remainingCycles = 7;
 	}
@@ -44,19 +44,19 @@ void Cpu6502::Irq()
 
 void Cpu6502::Nmi()
 {
-	m_pBus->Write(0x0100 + sp, (pc >> 8) & 0x00FF);
+	m_pCpuBus->Write(0x0100 + sp, (pc >> 8) & 0x00FF);
 	sp--;
-	m_pBus->Write(0x0100 + sp, pc & 0x00FF);
+	m_pCpuBus->Write(0x0100 + sp, pc & 0x00FF);
 	sp--;
 
 	SetFlag(B, false);
 	SetFlag(U, true);
 	SetFlag(I, true);
-	m_pBus->Write(0x0100 + sp, status);
+	m_pCpuBus->Write(0x0100 + sp, status);
 	sp--;
 
 	absoluteAddr = 0XFFFA;
-	pc = m_pBus->Read16(absoluteAddr);
+	pc = m_pCpuBus->Read16(absoluteAddr);
 
 	remainingCycles = 8;
 }
@@ -87,7 +87,7 @@ uint8_t Cpu6502::IMM()
 */
 uint8_t Cpu6502::ZP0()
 {
-	uint16_t zPage = m_pBus->Read(pc++);
+	uint16_t zPage = m_pCpuBus->Read(pc++);
 	absoluteAddr = 0x00FF & zPage;
 	return 0;
 }
@@ -97,7 +97,7 @@ uint8_t Cpu6502::ZP0()
 */
 uint8_t Cpu6502::ZPX()
 {
-	uint16_t zPage = m_pBus->Read(pc++);
+	uint16_t zPage = m_pCpuBus->Read(pc++);
 	absoluteAddr = 0x00FF & (zPage + X);
 	return 0;
 }
@@ -107,7 +107,7 @@ uint8_t Cpu6502::ZPX()
 */
 uint8_t Cpu6502::ZPY()
 {
-	uint16_t zPage = m_pBus->Read(pc++);
+	uint16_t zPage = m_pCpuBus->Read(pc++);
 	absoluteAddr = 0x00FF & (zPage + Y);
 	return 0;
 }
@@ -117,7 +117,7 @@ uint8_t Cpu6502::ZPY()
 */
 uint8_t Cpu6502::REL()
 {
-	relativeAddr = m_pBus->Read(pc++);
+	relativeAddr = m_pCpuBus->Read(pc++);
 
 	// if the MSB is set, we know its negative.
 	if (relativeAddr & 0x80)
@@ -131,7 +131,7 @@ uint8_t Cpu6502::REL()
 */
 uint8_t Cpu6502::ABS()
 {
-	absoluteAddr = m_pBus->Read16(pc);
+	absoluteAddr = m_pCpuBus->Read16(pc);
 	pc += 2;
 	return 0;
 }
@@ -141,7 +141,7 @@ uint8_t Cpu6502::ABS()
 */
 uint8_t Cpu6502::ABX()
 {
-	uint16_t addrPreOffset = m_pBus->Read16(pc);
+	uint16_t addrPreOffset = m_pCpuBus->Read16(pc);
 	pc += 2;
 	absoluteAddr = addrPreOffset + (uint16_t)X;
 
@@ -154,7 +154,7 @@ uint8_t Cpu6502::ABX()
 */
 uint8_t Cpu6502::ABY()
 {
-	uint16_t addrPreOffset = m_pBus->Read16(pc);
+	uint16_t addrPreOffset = m_pCpuBus->Read16(pc);
 	pc += 2;
 	absoluteAddr = addrPreOffset + (uint16_t)Y;
 
@@ -167,31 +167,31 @@ uint8_t Cpu6502::ABY()
 */
 uint8_t Cpu6502::IND()
 {
-	uint16_t indirectAddr = m_pBus->Read16(pc);
+	uint16_t indirectAddr = m_pCpuBus->Read16(pc);
 	pc += 2;
 
 	if (indirectAddr == (indirectAddr & 0x00FF)) // Simulate page boundary hardware bug
 	{
-		absoluteAddr = (m_pBus->Read(indirectAddr & 0xFF00) << 8) | m_pBus->Read(indirectAddr);
+		absoluteAddr = (m_pCpuBus->Read(indirectAddr & 0xFF00) << 8) | m_pCpuBus->Read(indirectAddr);
 	}
 	else // Behave normally
 	{
-		absoluteAddr = m_pBus->Read16(indirectAddr);
+		absoluteAddr = m_pCpuBus->Read16(indirectAddr);
 	}
 	return 0;
 }
 
 uint8_t Cpu6502::IZX()
 {
-	uint16_t indirectAddr = m_pBus->Read(pc++);
-	absoluteAddr = m_pBus->Read16(indirectAddr + (uint16_t)X);
+	uint16_t indirectAddr = m_pCpuBus->Read(pc++);
+	absoluteAddr = m_pCpuBus->Read16(indirectAddr + (uint16_t)X);
 	return 0;
 }
 
 uint8_t Cpu6502::IZY()
 {
-	uint16_t indirectAddr = m_pBus->Read(pc++);
-	uint16_t addrPreOffset = m_pBus->Read16(indirectAddr);
+	uint16_t indirectAddr = m_pCpuBus->Read(pc++);
+	uint16_t addrPreOffset = m_pCpuBus->Read16(indirectAddr);
 	absoluteAddr = addrPreOffset + (uint16_t)Y;
 
 	// check for page boundry cross
@@ -234,7 +234,7 @@ uint8_t Cpu6502::ASL()
 	if (kInstructions[currentOpCode].addrmode == &Cpu6502::IMP)
 		A = temp & 0x00FF;
 	else
-		m_pBus->Write(absoluteAddr, temp & 0x00FF);
+		m_pCpuBus->Write(absoluteAddr, temp & 0x00FF);
 
 	return 0;
 }
@@ -348,17 +348,17 @@ uint8_t Cpu6502::BPL()
 uint8_t Cpu6502::BRK()
 {
 	SetFlag(I, 1);
-	m_pBus->Write(0x0100 + (uint16_t)sp, (pc >> 8) & 0x00FF);
+	m_pCpuBus->Write(0x0100 + (uint16_t)sp, (pc >> 8) & 0x00FF);
 	sp--;
-	m_pBus->Write(0x0100 + (uint16_t)sp, pc & 0x00FF);
+	m_pCpuBus->Write(0x0100 + (uint16_t)sp, pc & 0x00FF);
 	sp--;
 
 	SetFlag(B, 1);
-	m_pBus->Write(0x0100 + (uint16_t)sp, status);
+	m_pCpuBus->Write(0x0100 + (uint16_t)sp, status);
 	sp--;
 	SetFlag(B, 0);
 
-	pc = (uint16_t)m_pBus->Read(0xFFFE) | ((uint16_t)m_pBus->Read(0xFFFF) << 8);
+	pc = (uint16_t)m_pCpuBus->Read(0xFFFE) | ((uint16_t)m_pCpuBus->Read(0xFFFF) << 8);
 	return 0;
 }
 
@@ -451,7 +451,7 @@ uint8_t Cpu6502::CPY()
 uint8_t Cpu6502::DEC()
 {
 	uint8_t data = FetchData() - 1;
-	m_pBus->Write(absoluteAddr, data);
+	m_pCpuBus->Write(absoluteAddr, data);
 	SetFlag(Z, data == 0);
 	SetFlag(N, data & 0x80);
 	return 0;
@@ -486,7 +486,7 @@ uint8_t Cpu6502::EOR()
 uint8_t Cpu6502::INC()
 {
 	uint8_t data = FetchData() + 1;
-	m_pBus->Write(absoluteAddr, data);
+	m_pCpuBus->Write(absoluteAddr, data);
 	SetFlag(Z, data == 0);
 	SetFlag(N, data & 0x80);
 	return 0;
@@ -518,9 +518,9 @@ uint8_t Cpu6502::JSR()
 {
 	pc--;
 
-	m_pBus->Write(0x0100 + (uint16_t)sp, (pc >> 8) & 0x00FF);
+	m_pCpuBus->Write(0x0100 + (uint16_t)sp, (pc >> 8) & 0x00FF);
 	sp--;
-	m_pBus->Write(0x0100 + (uint16_t)sp, pc & 0x00FF);
+	m_pCpuBus->Write(0x0100 + (uint16_t)sp, pc & 0x00FF);
 	sp--;
 
 	pc = absoluteAddr;
@@ -564,7 +564,7 @@ uint8_t Cpu6502::LSR()
 	if (kInstructions[currentOpCode].addrmode == &Cpu6502::IMP)
 		A = temp & 0x00FF;
 	else
-		m_pBus->Write(absoluteAddr, temp & 0x00FF);
+		m_pCpuBus->Write(absoluteAddr, temp & 0x00FF);
 
 	return 0;
 }
@@ -597,14 +597,14 @@ uint8_t Cpu6502::ORA()
 
 uint8_t Cpu6502::PHA()
 {
-	m_pBus->Write(0x0100 + (uint16_t)sp, A);
+	m_pCpuBus->Write(0x0100 + (uint16_t)sp, A);
 	sp--;
 	return 0;
 }
 
 uint8_t Cpu6502::PHP()
 {
-	m_pBus->Write(0x0100 + (uint16_t)sp, status);
+	m_pCpuBus->Write(0x0100 + (uint16_t)sp, status);
 	sp--;
 	return 0;
 }
@@ -612,7 +612,7 @@ uint8_t Cpu6502::PHP()
 uint8_t Cpu6502::PLA()
 {
 	sp++;
-	A = m_pBus->Read(0x0100 + (uint16_t)sp);
+	A = m_pCpuBus->Read(0x0100 + (uint16_t)sp);
 	SetFlag(N, A & 0x80);
 	SetFlag(Z, A == 0x00);
 	return 0;
@@ -621,7 +621,7 @@ uint8_t Cpu6502::PLA()
 uint8_t Cpu6502::PLP()
 {
 	sp++;
-	status = m_pBus->Read(0x0100 + (uint16_t)sp);
+	status = m_pCpuBus->Read(0x0100 + (uint16_t)sp);
 	return 0;
 }
 
@@ -646,12 +646,12 @@ uint8_t Cpu6502::ROR()
 uint8_t Cpu6502::RTI()
 {
 	sp++;
-	status = m_pBus->Read(0x0100 + (uint16_t)sp);
+	status = m_pCpuBus->Read(0x0100 + (uint16_t)sp);
 	SetFlag(B, 0);
 	SetFlag(U, 0);
 
 	sp++;
-	pc = m_pBus->Read16(0x0100 + (uint16_t)sp);
+	pc = m_pCpuBus->Read16(0x0100 + (uint16_t)sp);
 	sp++;
 
 	return 0;
@@ -660,7 +660,7 @@ uint8_t Cpu6502::RTI()
 uint8_t Cpu6502::RTS()
 {
 	sp++;
-	pc = m_pBus->Read16(0x0100 + (uint16_t)sp);
+	pc = m_pCpuBus->Read16(0x0100 + (uint16_t)sp);
 	sp++;
 	pc++;
 	return 0;
@@ -701,19 +701,19 @@ uint8_t Cpu6502::SEI()
 
 uint8_t Cpu6502::STA()
 {
-	m_pBus->Write(absoluteAddr, A);
+	m_pCpuBus->Write(absoluteAddr, A);
 	return 0;
 }
 
 uint8_t Cpu6502::STX()
 {
-	m_pBus->Write(absoluteAddr, X);
+	m_pCpuBus->Write(absoluteAddr, X);
 	return 0;
 }
 
 uint8_t Cpu6502::STY()
 {
-	m_pBus->Write(absoluteAddr, Y);
+	m_pCpuBus->Write(absoluteAddr, Y);
 	return 0;
 }
 
