@@ -1,0 +1,11 @@
+LDA #$6F
+LDX #$16
+STX $00
+AND $00
+
+LDA #$0F
+ORA #$F0
+
+LOOP:
+CLC
+BCC LOOP

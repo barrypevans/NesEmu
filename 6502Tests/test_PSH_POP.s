@@ -1,0 +1,16 @@
+LDA #$00
+
+PHA
+PHP
+
+ADC #$01
+ADC #$01
+LDX #$00
+
+PLP
+PLA
+
+
+BCC_LOOP:
+CLC
+BCC BCC_LOOP

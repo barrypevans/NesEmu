@@ -1,0 +1,94 @@
+#include "Bus.h"
+#include <assert.h>
+
+Bus::Bus()
+{
+}
+
+Bus::~Bus()
+{
+}
+
+uint8_t Bus::Read(uint16_t addr)
+{
+	// Fetch memory device
+	MemoryDeviceMapping& memoryDeviceMapping = FetchMemoryInterfaceAtAddress(addr);
+	
+	// Trying to read from a section of memory with nothing mapped :(
+	// This should probably just return garbage and warn rather than crashing.
+	//assert(memoryDeviceMapping.m_pDevice != nullptr);
+	if (memoryDeviceMapping.m_pDevice == nullptr)
+	{
+		// garbage
+		return 0x00;
+	}
+	// Subtract the virtual offset from the proposed address to read from the correct position in the 
+	// memory device's virtual address space
+	return memoryDeviceMapping.m_pDevice->Read(addr - memoryDeviceMapping.m_virtualBusOffset);
+}
+
+uint16_t Bus::Read16(uint16_t addr)
+{
+	uint16_t low  = Read(addr);
+	uint16_t high = Read(addr + 1);
+	return  (high << 8) | low;
+}
+
+bool Bus::Write(uint16_t addr, uint8_t data)
+{
+	// Fetch memory device
+	MemoryDeviceMapping& memoryDeviceMapping = FetchMemoryInterfaceAtAddress(addr);
+	if (memoryDeviceMapping.m_pDevice == nullptr)
+		return false;
+
+	// Subtract the virtual offset from the proposed address to read from the correct position in the 
+	// memory device's virtual address space
+	memoryDeviceMapping.m_pDevice->Write(addr - memoryDeviceMapping.m_virtualBusOffset, data);
+	return true;
+}
+
+void Bus::RegisterMemoryDevice(IMemoryDevice * pDevice, uint16_t virtualBusOffset)
+{
+	// Make sure this device does not map outside the bus
+	assert(pDevice->GetSize() + virtualBusOffset <= kBusSize);
+
+	// Make sure we dont add overlapping devices
+	assert(!DeviceExistsInRange(virtualBusOffset, virtualBusOffset + pDevice->GetSize()));
+
+	// Add new device to the device list
+	m_memoryDeviceMappings[m_numMemoryDevices] = { pDevice, virtualBusOffset };
+	m_numMemoryDevices++;
+}
+
+Bus::MemoryDeviceMapping& Bus::FetchMemoryInterfaceAtAddress(uint16_t addr)
+{
+	uint8_t deviceIndex = 0;
+	while (deviceIndex < m_numMemoryDevices)
+	{
+		MemoryDeviceMapping& deviceMapping = m_memoryDeviceMappings[deviceIndex];
+		uint16_t virtualEndAddress = deviceMapping.m_virtualBusOffset + deviceMapping.m_pDevice->GetSize();
+		// Checking if the given address falls between the start and end of this devices address space
+		if (deviceMapping.m_virtualBusOffset <= addr && virtualEndAddress > addr)
+			return deviceMapping;
+		deviceIndex++;
+	}
+	return kNullDevice;
+}
+
+bool Bus::DeviceExistsInRange(uint16_t startAddr, uint16_t endAddr)
+{
+	uint8_t deviceIndex = 0;
+	while (deviceIndex < m_numMemoryDevices)
+	{
+		MemoryDeviceMapping& deviceMapping = m_memoryDeviceMappings[deviceIndex];
+		uint16_t virtualEndAddress = deviceMapping.m_virtualBusOffset + deviceMapping.m_pDevice->GetSize();
+		// If the start or end of this device's virtual address space lands in the range, this device IS in range
+		if ((deviceMapping.m_virtualBusOffset >= startAddr && deviceMapping.m_virtualBusOffset <= endAddr) ||
+			(virtualEndAddress > startAddr && virtualEndAddress < endAddr))
+		{
+			return true;
+		}
+		deviceIndex++;
+	}
+	return false;
+}
