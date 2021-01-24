@@ -33,10 +33,10 @@ DisassemblyWidget::~DisassemblyWidget()
 {
 }
 
-void DisassemblyWidget::SetDissasembly(uint8_t * bin, uint16_t size)
+void DisassemblyWidget::SetDissasembly(Bus* pCpuBus, uint16_t startAddr, uint16_t length)
 {
 	m_pDisassemblyList->clear();
-	m_disassembly = Utils::Dissassemble(bin, size);
+	m_disassembly = Utils::Dissassemble(pCpuBus, startAddr, length);
 	for (int i = 0; i < m_disassembly.size(); ++i)
 	{
 		Utils::DisassembledInstruction inst = m_disassembly[i];

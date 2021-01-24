@@ -6,6 +6,9 @@
 #include <string>
 #include <stdint.h>
 
+class CartridgePPUInterface;
+class CartridgeCPUInterface;
+
 class Cartridge
 {
 public:
@@ -20,17 +23,23 @@ public:
 	bool IsCatridgeReady() { return m_cartridgeReady; }
 private:
 
+	bool InitMapper();
+
 	uint8_t numPrgBanks = 0;
 	uint8_t numChrBanks = 0;
-	uint8_t* m_pPrgMemory;
-	uint8_t* m_pChrMemory;
+	uint8_t* m_pPrgMemory = nullptr;
+	uint8_t* m_pChrMemory = nullptr;
+	uint8_t m_mapperId;
 
 	bool m_cartridgeReady = false;
-	IMapper* m_pMapper;
-	INesHeader m_iNesHeader;
+	IMapper* m_pMapper = nullptr;
+	INes::INesHeader m_iNesHeader;
 
-	CartridgePPUInterface* m_pPpuInterface;
-	CartridgeCPUInterface* m_pCpuInterface;
+	CartridgePPUInterface* m_pPpuInterface = nullptr;
+	CartridgeCPUInterface* m_pCpuInterface = nullptr;
+
+	Bus * m_pCpuBus;
+	Bus * m_pPpuBus;
 };
 
 class CartridgePPUInterface : public IMemoryDevice
@@ -48,7 +57,7 @@ class CartridgeCPUInterface : public IMemoryDevice
 {
 public:
 	Cartridge* m_pCart;
-	CartridgePPUInterface(Cartridge* pCart) { m_pCart = pCart; }
+	CartridgeCPUInterface(Cartridge* pCart) { m_pCart = pCart; }
 	virtual uint8_t Read(uint16_t addr) override { return m_pCart->CpuRead(addr); }
 	virtual bool Write(uint16_t addr, uint8_t data) override { return m_pCart->CpuWrite(addr, data); }
 	virtual uint16_t GetSize() override { return 0xBFDF; /*0x4020 -> 0xFFFF*/ }

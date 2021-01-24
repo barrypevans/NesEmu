@@ -58,7 +58,7 @@ NesEmu::NesEmu(QWidget *parent)
 	connect(m_pResetButton, &QPushButton::released, this, &NesEmu::Reset);
 	connect(m_pPauseButton, &QPushButton::released, this, &NesEmu::PauseEmulation);
 	connect(m_pStartButton, &QPushButton::released, this, &NesEmu::UnpauseEmulation);
-	connect(ui.menuFile, &QMenu::triggered, this, &NesEmu::UploadProgram);
+	connect(ui.menuFile, &QMenu::triggered, this, &NesEmu::LoadCartridge);
 }
 
 void NesEmu::UpdateEmulation()
@@ -67,23 +67,45 @@ void NesEmu::UpdateEmulation()
 		Tick();
 }
 
-void NesEmu::UploadProgram()
+//void NesEmu::UploadProgram()
+//{
+//	/*QStringList fileNames = QFileDialog::getOpenFileNames(this, tr("Open File"), "C:/", tr("6502 Programs (*.bin)"));
+//	if (fileNames.size() > 0)
+//	{
+//		QString filename = fileNames[0];
+//		size_t dataLength = 0;
+//		uint8_t* bin = (uint8_t*)Utils::LoadEntireFile(filename.toStdString().c_str(), dataLength, false);
+//
+//		if (bin)
+//		{
+//			m_pNes->UploadProgram(bin, dataLength);
+//			m_pNes->Reset();
+//
+//			m_pDisassemblyWidget->SetDissasembly(bin, dataLength);
+//
+//			m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
+//
+//			setWindowTitle(kTitle.arg(filename));
+//		}
+//	}*/
+//}
+
+void NesEmu::LoadCartridge()
 {
-	QStringList fileNames = QFileDialog::getOpenFileNames(this, tr("Open File"), "C:/", tr("6502 Programs (*.bin)"));
+	QStringList fileNames = QFileDialog::getOpenFileNames(this, tr("Open File"), "C:/", tr("INes Rom (*.nes)"));
 	if (fileNames.size() > 0)
 	{
 		QString filename = fileNames[0];
-		size_t dataLength = 0;
-		uint8_t* bin = (uint8_t*)Utils::LoadEntireFile(filename.toStdString().c_str(), dataLength, false);
+		std::string stdFileName = filename.toStdString();
+		m_pNes->InsertCartridge(stdFileName);
 
-		if (bin)
+		if (m_pNes->HasCartridge())
 		{
-			m_pNes->UploadProgram(bin, dataLength);
 			m_pNes->Reset();
 
-			m_pDisassemblyWidget->SetDissasembly(bin, dataLength);
+			m_pDisassemblyWidget->SetDissasembly(m_pNes->m_pCpuBus, m_pNes->m_pCpu->pc, 20);
 
-			m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
+			m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus, true);
 
 			setWindowTitle(kTitle.arg(filename));
 		}
@@ -104,7 +126,7 @@ void NesEmu::Tick()
 void NesEmu::Reset()
 {
 	m_pNes->Reset();
-	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
+	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus, true);
 	m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc);
 }
 

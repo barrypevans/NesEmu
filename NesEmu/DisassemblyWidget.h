@@ -10,7 +10,7 @@ public:
 	DisassemblyWidget();
 	~DisassemblyWidget();
 
-	void SetDissasembly(uint8_t* bin, uint16_t size);
+	void SetDissasembly(Bus* pCpuBus, uint16_t startAddr, uint16_t length);
 	bool Update(uint16_t pc);
 
 private:

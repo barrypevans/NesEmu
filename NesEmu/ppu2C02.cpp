@@ -9,3 +9,7 @@ Ppu2C02::Ppu2C02(Bus * pPpuBus, Bus * pCpuBus)
 Ppu2C02::~Ppu2C02()
 {
 }
+
+void Ppu2C02::Tick()
+{
+}

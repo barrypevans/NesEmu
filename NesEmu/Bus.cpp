@@ -1,5 +1,6 @@
 #include "Bus.h"
 #include <assert.h>
+#include "Messager.h"
 
 Bus::Bus()
 {
@@ -13,7 +14,7 @@ uint8_t Bus::Read(uint16_t addr)
 {
 	// Fetch memory device
 	MemoryDeviceMapping& memoryDeviceMapping = FetchMemoryInterfaceAtAddress(addr);
-	
+
 	// Trying to read from a section of memory with nothing mapped :(
 	// This should probably just return garbage and warn rather than crashing.
 	//assert(memoryDeviceMapping.m_pDevice != nullptr);
@@ -30,7 +31,7 @@ uint8_t Bus::Read(uint16_t addr)
 
 uint16_t Bus::Read16(uint16_t addr)
 {
-	uint16_t low  = Read(addr);
+	uint16_t low = Read(addr);
 	uint16_t high = Read(addr + 1);
 	return  (high << 8) | low;
 }
@@ -45,7 +46,14 @@ bool Bus::Write(uint16_t addr, uint8_t data)
 	// Subtract the virtual offset from the proposed address to read from the correct position in the 
 	// memory device's virtual address space
 	uint16_t finalAddr = memoryDeviceMapping.m_pDevice->UseVirtualAddressSpace() ? addr - memoryDeviceMapping.m_virtualBusOffset : addr;
-	memoryDeviceMapping.m_pDevice->Write(finalAddr, data);
+	
+	if (memoryDeviceMapping.m_pDevice->Write(finalAddr, data))
+	{
+		// update ui with this datum
+		BusDatumPayload payload = { finalAddr, data };
+		Messager::Get()->SendMessage("BusDatumUpdated", &payload);
+	}
+		
 	return true;
 }
 
@@ -55,11 +63,32 @@ void Bus::RegisterMemoryDevice(IMemoryDevice * pDevice, uint16_t virtualBusOffse
 	assert(pDevice->GetSize() + virtualBusOffset <= kBusSize);
 
 	// Make sure we dont add overlapping devices
-	assert(!DeviceExistsInRange(virtualBusOffset, virtualBusOffset + pDevice->GetSize()));
+	assert(!DeviceExistsInRange(virtualBusOffset, virtualBusOffset + pDevice->GetSize()-1));
 
 	// Add new device to the device list
 	m_memoryDeviceMappings[m_numMemoryDevices] = { pDevice, virtualBusOffset };
 	m_numMemoryDevices++;
+}
+
+void Bus::UnregisterMemoryDevice(IMemoryDevice * pDevice)
+{
+	uint8_t deviceIndex = 0;
+	while (deviceIndex < m_numMemoryDevices)
+	{
+		MemoryDeviceMapping& deviceMapping = m_memoryDeviceMappings[deviceIndex];
+		if (deviceMapping.m_pDevice == pDevice)
+		{
+			m_numMemoryDevices--;
+			if (deviceIndex != m_numMemoryDevices)
+				m_memoryDeviceMappings[deviceIndex] = m_memoryDeviceMappings[m_numMemoryDevices];
+			else
+				break;
+		}
+		else
+		{
+			deviceIndex++;
+		}
+	}
 }
 
 Bus::MemoryDeviceMapping& Bus::FetchMemoryInterfaceAtAddress(uint16_t addr)

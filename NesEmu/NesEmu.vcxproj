@@ -88,7 +88,11 @@
   <ItemGroup>
     <ClCompile Include="Cartridge.cpp" />
     <ClCompile Include="DisassemblyWidget.cpp" />
+    <ClCompile Include="Inbox.cpp" />
+    <ClCompile Include="INesFile.cpp" />
+    <ClCompile Include="Mapper000.cpp" />
     <ClCompile Include="MemoryWidget.cpp" />
+    <ClCompile Include="Messager.cpp" />
     <ClCompile Include="Nes.cpp" />
     <ClCompile Include="opcodes.cpp" />
     <ClCompile Include="ppu2C02.cpp" />
@@ -108,8 +112,11 @@
     <ClInclude Include="DisassemblyWidget.h" />
     <ClInclude Include="IMapper.h" />
     <ClInclude Include="IMemoryDevice.h" />
+    <ClInclude Include="Inbox.h" />
     <ClInclude Include="INesFile.h" />
+    <ClInclude Include="Mapper000.h" />
     <ClInclude Include="MemoryWidget.h" />
+    <ClInclude Include="Messager.h" />
     <ClInclude Include="Nes.h" />
     <ClInclude Include="ppu2C02.h" />
     <ClInclude Include="Ram.h" />

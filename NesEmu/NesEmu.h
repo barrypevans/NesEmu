@@ -18,7 +18,8 @@ public:
 	
 	void UpdateEmulation();
 
-	void UploadProgram();
+	/*void UploadProgram();*/
+	void LoadCartridge();
 	void Tick();
 	void Reset();
 private:

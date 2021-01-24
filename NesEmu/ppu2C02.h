@@ -7,6 +7,8 @@ public:
 	Ppu2C02(Bus* m_pPpuBus, Bus* m_pCpuBus);
 	~Ppu2C02();
 
+	void Tick();
+
 	Bus* m_pPpuBus;
 	Bus* m_pCpuBus;
 };

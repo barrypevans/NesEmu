@@ -29,7 +29,9 @@ void Cpu6502::Reset()
 
 	// initial program counter adderess is always storead at 0xFFFC
 	const uint16_t pcInitAddr = 0xFFFC;
-	pc = m_pCpuBus->Read16(pcInitAddr);
+	uint16_t lo = m_pCpuBus->Read(pcInitAddr);
+	uint16_t hi = m_pCpuBus->Read(pcInitAddr+1);
+	pc = (hi << 8) + lo;
 
 	// reset helper state
 	currentOpCode = 0x00;
@@ -99,6 +101,11 @@ void Cpu6502::Tick()
 
 		// Set unused flag true again after operation in case it was changed.
 		SetFlag(U, true);
+
+		m_instructionComplete = false;
 	}
 	remainingCycles--;
+
+	if (remainingCycles == 0)
+		m_instructionComplete = true;
 }

@@ -33,7 +33,7 @@
   </widget>
   <action name="actionLoad_Program">
    <property name="text">
-    <string>Load Program</string>
+    <string>Load Rom</string>
    </property>
   </action>
  </widget>

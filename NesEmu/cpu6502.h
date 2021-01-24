@@ -84,5 +84,7 @@ public:
 	static Instruction kInstructions[256];
 	Bus* m_pCpuBus;
 	Bus* m_pPpuBus;
+
+	bool m_instructionComplete = false;
 };
 

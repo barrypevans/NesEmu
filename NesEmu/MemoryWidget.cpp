@@ -29,13 +29,15 @@ MemoryWidget::MemoryWidget()
 	pFrame->layout()->addWidget(pRamTitle);
 	pFrame->layout()->addWidget(m_pRamTable);
 	layout()->addWidget(pFrame);
+
+	Init();
 }
 
 MemoryWidget::~MemoryWidget()
 {
 }
 
-void MemoryWidget::UpdateState(Cpu6502 * pCpu, Bus * pBus)
+void MemoryWidget::UpdateState(Cpu6502 * pCpu, Bus * pBus, bool fullUpdate)
 {
 	QTableWidgetItem *item = m_pRegisterTable->item(0, 0);
 	item->setText(Utils::IntToHexString(pCpu->A));
@@ -58,27 +60,40 @@ void MemoryWidget::UpdateState(Cpu6502 * pCpu, Bus * pBus)
 		flagIndex++;
 	}
 
-	int row = 0;
-	while (row < 64)
-	{
-		int col = 0;
-		while (col < 32)
-		{
-			int index = row * 32 + col;
-			int value = pBus->Read(index);
 
-			QString stringVal = Utils::IntToHexString(value);
-			item = m_pRamTable->item(row, col);
-			item->setText(stringVal);
-			++col;
+	if (fullUpdate)
+	{
+		int row = 0;
+		while (row < 2048)
+		{
+			int col = 0;
+			while (col < 32)
+			{
+				int index = row * 32 + col;
+				int value = pBus->Read(index);
+
+				QString stringVal = Utils::IntToHexString(value);
+				item = m_pRamTable->item(row, col);
+				item->setText(stringVal);
+				++col;
+			}
+			++row;
 		}
-		++row;
 	}
+}
+
+void MemoryWidget::UpdateDatum(uint16_t addr, uint8_t datum)
+{
+	int row = addr / 32;
+	int col = addr % 32;
+	QString stringVal = Utils::IntToHexString(datum);
+	QTableWidgetItem* item = m_pRamTable->item(row, col);
+	item->setText(stringVal);
 }
 
 void MemoryWidget::SetupRamTable()
 {
-	m_pRamTable = new QTableWidget(64, 32);
+	m_pRamTable = new QTableWidget(2048, 32);
 	int col = 0;
 	int row = 0;
 	while (col < 32)
@@ -93,7 +108,7 @@ void MemoryWidget::SetupRamTable()
 		m_pRamTable->setHorizontalHeaderItem(col, item);
 		col++;
 	}
-	while (row < 64)
+	while (row < 2048)
 	{
 		m_pRamTable->setRowHeight(row, 1);
 		auto header = m_pRamTable->verticalHeader();
@@ -108,7 +123,7 @@ void MemoryWidget::SetupRamTable()
 
 	// set not editable
 	row = 0;
-	while (row < 64)
+	while (row < 2048)
 	{
 		col = 0;
 		while (col < 32)
@@ -166,4 +181,13 @@ QTableWidgetItem * MemoryWidget::GetNewTableItem(QString text)
 	pItem->setFlags(pItem->flags() &  ~Qt::ItemIsEditable);
 	pItem->setText(text);
 	return pItem;
+}
+
+void MemoryWidget::RecieveMessage(std::string label, void * payload)
+{
+	if (label == "BusDatumUpdated")
+	{
+		Bus::BusDatumPayload* busPayload = (Bus::BusDatumPayload*)payload;
+		UpdateDatum(busPayload->addr, busPayload->datum);
+	}
 }
