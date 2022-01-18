@@ -21,7 +21,7 @@ public:
 		return QString::number(val, 16).rightJustified(padding, '0').toUpper();
 	}
 
-	static std::vector<DisassembledInstruction> Dissassemble(Bus* pCpuBus, uint16_t startAddr, uint16_t length)
+	static std::vector<DisassembledInstruction> Dissassemble(Bus* pCpuBus, uint16_t startAddr, uint16_t length, bool nullTerminate=true)
 	{
 		std::vector<DisassembledInstruction> result;
 		uint16_t pc = startAddr;
@@ -37,59 +37,59 @@ public:
 
 			if (inst.addrmode == &Cpu6502::IMP)
 			{
-				resultOp.mnemonic += "<IMP>\n";
+				resultOp.mnemonic += "<IMP>";
 			}
 			else if (inst.addrmode == &Cpu6502::IMM)
 			{
-				resultOp.mnemonic += QString("#$%1 <IMM>\n").arg(IntToHexString(pCpuBus->Read(pc++)));
+				resultOp.mnemonic += QString("#$%1 <IMM>").arg(IntToHexString(pCpuBus->Read(pc++)));
 			}
 			else if (inst.addrmode == &Cpu6502::ZP0)
 			{
-				resultOp.mnemonic += QString("$%1 <ZP0>\n").arg(IntToHexString(pCpuBus->Read(pc++)));
+				resultOp.mnemonic += QString("$%1 <ZP0>").arg(IntToHexString(pCpuBus->Read(pc++)));
 			}
 			else if (inst.addrmode == &Cpu6502::ZPX)
 			{
-				resultOp.mnemonic += QString("$%1, X <ZPX>\n").arg(IntToHexString(pCpuBus->Read(pc++)));
+				resultOp.mnemonic += QString("$%1, X <ZPX>").arg(IntToHexString(pCpuBus->Read(pc++)));
 			}
 			else if (inst.addrmode == &Cpu6502::ZPY)
 			{
-				resultOp.mnemonic += QString("$%1, Y <ZPY>\n").arg(IntToHexString(pCpuBus->Read(pc++)));
+				resultOp.mnemonic += QString("$%1, Y <ZPY>").arg(IntToHexString(pCpuBus->Read(pc++)));
 			}
 			else if (inst.addrmode == &Cpu6502::IZX)
 			{
-				resultOp.mnemonic += QString("($%1, X) <IZX>\n").arg(IntToHexString(pCpuBus->Read(pc++)));
+				resultOp.mnemonic += QString("($%1, X) <IZX>").arg(IntToHexString(pCpuBus->Read(pc++)));
 			}
 			else if (inst.addrmode == &Cpu6502::IZY)
 			{
-				resultOp.mnemonic += QString("($%1, Y) <IZY>\n").arg(IntToHexString(pCpuBus->Read(pc++)));
+				resultOp.mnemonic += QString("($%1, Y) <IZY>").arg(IntToHexString(pCpuBus->Read(pc++)));
 			}
 			else if (inst.addrmode == &Cpu6502::ABS)
 			{
 				uint16_t lo = pCpuBus->Read(pc++);
 				uint16_t hi = pCpuBus->Read(pc++);
 
-				resultOp.mnemonic += QString("$%1 <ABS>\n").arg(IntToHexString(((hi << 8) | lo), 4));
+				resultOp.mnemonic += QString("$%1 <ABS>").arg(IntToHexString(((hi << 8) | lo), 4));
 			}
 			else if (inst.addrmode == &Cpu6502::ABX)
 			{
 				uint16_t lo = pCpuBus->Read(pc++);
 				uint16_t hi = pCpuBus->Read(pc++);
 
-				resultOp.mnemonic += QString("$%1, X <ABX>\n").arg(IntToHexString((hi << 8) | lo, 4));
+				resultOp.mnemonic += QString("$%1, X <ABX>").arg(IntToHexString((hi << 8) | lo, 4));
 			}
 			else if (inst.addrmode == &Cpu6502::ABY)
 			{
 				uint16_t lo = pCpuBus->Read(pc++);
 				uint16_t hi = pCpuBus->Read(pc++);
 
-				resultOp.mnemonic += QString("$%1, Y <ABY>\n").arg(IntToHexString((hi << 8) | lo, 4));
+				resultOp.mnemonic += QString("$%1, Y <ABY>").arg(IntToHexString((hi << 8) | lo, 4));
 			}
 			else if (inst.addrmode == &Cpu6502::IND)
 			{
 				uint16_t lo = pCpuBus->Read(pc++);
 				uint16_t hi = pCpuBus->Read(pc++);
 
-				resultOp.mnemonic += QString("$%1 <IND>\n").arg(IntToHexString((hi << 8) | lo, 4));
+				resultOp.mnemonic += QString("$%1 <IND>").arg(IntToHexString((hi << 8) | lo, 4));
 			}
 			else if (inst.addrmode == &Cpu6502::REL)
 			{
@@ -97,8 +97,9 @@ public:
 				if (offset & 0x0080 > 0)
 					offset |= 0xFF00;
 				uint16_t absoluteAddr = pc + offset;
-				resultOp.mnemonic += QString("$%1 [%2] <REL>\n").arg(IntToHexString(offset), IntToHexString(absoluteAddr, 4));
+				resultOp.mnemonic += QString("$%1 [%2] <REL>").arg(IntToHexString(offset), IntToHexString(absoluteAddr, 4));
 			}
+			if (nullTerminate) resultOp.mnemonic += QString("\n");
 			resultOp.end = pc - 1;
 			result.push_back(resultOp);
 		}
@@ -106,7 +107,91 @@ public:
 		return result;
 	}
 
-	static void* Utils::LoadEntireFile(const char * filePath, size_t& length, bool nullTerminate)
+	static void DissassembleFix(std::vector<DisassembledInstruction>& result, Bus* pCpuBus, uint16_t startAddr, uint16_t length, bool nullTerminate = true)
+	{
+		uint16_t pc = startAddr;
+		while (pc < startAddr + length)
+		{
+			DisassembledInstruction resultOp;
+			resultOp.start = pc;
+
+			uint8_t op = pCpuBus->Read(pc);
+			Cpu6502::Instruction inst = Cpu6502::kInstructions[op];
+			resultOp.mnemonic = QString("%1: %2 ").arg(IntToHexString(pc, 4), inst.name.c_str());
+			pc++;
+
+			if (inst.addrmode == &Cpu6502::IMP)
+			{
+				resultOp.mnemonic += "<IMP>";
+			}
+			else if (inst.addrmode == &Cpu6502::IMM)
+			{
+				resultOp.mnemonic += QString("#$%1 <IMM>").arg(IntToHexString(pCpuBus->Read(pc++)));
+			}
+			else if (inst.addrmode == &Cpu6502::ZP0)
+			{
+				resultOp.mnemonic += QString("$%1 <ZP0>").arg(IntToHexString(pCpuBus->Read(pc++)));
+			}
+			else if (inst.addrmode == &Cpu6502::ZPX)
+			{
+				resultOp.mnemonic += QString("$%1, X <ZPX>").arg(IntToHexString(pCpuBus->Read(pc++)));
+			}
+			else if (inst.addrmode == &Cpu6502::ZPY)
+			{
+				resultOp.mnemonic += QString("$%1, Y <ZPY>").arg(IntToHexString(pCpuBus->Read(pc++)));
+			}
+			else if (inst.addrmode == &Cpu6502::IZX)
+			{
+				resultOp.mnemonic += QString("($%1, X) <IZX>").arg(IntToHexString(pCpuBus->Read(pc++)));
+			}
+			else if (inst.addrmode == &Cpu6502::IZY)
+			{
+				resultOp.mnemonic += QString("($%1, Y) <IZY>").arg(IntToHexString(pCpuBus->Read(pc++)));
+			}
+			else if (inst.addrmode == &Cpu6502::ABS)
+			{
+				uint16_t lo = pCpuBus->Read(pc++);
+				uint16_t hi = pCpuBus->Read(pc++);
+
+				resultOp.mnemonic += QString("$%1 <ABS>").arg(IntToHexString(((hi << 8) | lo), 4));
+			}
+			else if (inst.addrmode == &Cpu6502::ABX)
+			{
+				uint16_t lo = pCpuBus->Read(pc++);
+				uint16_t hi = pCpuBus->Read(pc++);
+
+				resultOp.mnemonic += QString("$%1, X <ABX>").arg(IntToHexString((hi << 8) | lo, 4));
+			}
+			else if (inst.addrmode == &Cpu6502::ABY)
+			{
+				uint16_t lo = pCpuBus->Read(pc++);
+				uint16_t hi = pCpuBus->Read(pc++);
+
+				resultOp.mnemonic += QString("$%1, Y <ABY>").arg(IntToHexString((hi << 8) | lo, 4));
+			}
+			else if (inst.addrmode == &Cpu6502::IND)
+			{
+				uint16_t lo = pCpuBus->Read(pc++);
+				uint16_t hi = pCpuBus->Read(pc++);
+
+				resultOp.mnemonic += QString("$%1 <IND>").arg(IntToHexString((hi << 8) | lo, 4));
+			}
+			else if (inst.addrmode == &Cpu6502::REL)
+			{
+				uint16_t offset = pCpuBus->Read(pc++);
+				if (offset & 0x0080)
+					offset |= 0xFF00;
+				uint16_t absoluteAddr = pc + offset;
+				resultOp.mnemonic += QString("$%1 [%2] <REL>").arg(IntToHexString(offset), IntToHexString(absoluteAddr, 4));
+			}
+			if (nullTerminate) resultOp.mnemonic += QString("\n");
+			resultOp.end = pc - 1;
+			result.push_back(resultOp);
+		}
+	}
+
+
+	static void* LoadEntireFile(const char * filePath, size_t& length, bool nullTerminate)
 	{
 		std::ifstream ifs(filePath, std::ios::binary | std::ios::ate);
 
@@ -133,7 +218,7 @@ public:
 		return data;
 	}
 
-	static void Utils::DumpToFile(const char * filePath, void* pData, size_t size)
+	static void DumpToFile(const char * filePath, void* pData, size_t size)
 	{
 		std::ofstream outStream; // outdata is like cin
 		outStream.open(filePath, std::ios::binary | std::ios::ate); // opens the file

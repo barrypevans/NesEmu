@@ -44,6 +44,11 @@ uint16_t Ram::GetSize()
 	return m_size;
 }
 
+void Ram::Clear()
+{
+	std::memset(m_memory, 0, m_size);
+}
+
 bool Rom::Write(uint16_t addr, uint8_t data)
 {
 	return false;

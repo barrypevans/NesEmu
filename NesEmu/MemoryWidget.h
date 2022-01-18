@@ -1,7 +1,7 @@
 #pragma once
-#include <qwidget.h>
-#include <qlabel.h>
-#include <QTableWidget>
+#include <QtWidgets/qwidget.h>
+#include <QtWidgets/qlabel.h>
+#include <QtWidgets/QTableWidget>
 #include "cpu6502.h"
 #include "Bus.h"
 #include "Inbox.h"

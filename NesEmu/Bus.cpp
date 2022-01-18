@@ -29,11 +29,21 @@ uint8_t Bus::Read(uint16_t addr)
 	return memoryDeviceMapping.m_pDevice->Read(finalAddr);
 }
 
-uint16_t Bus::Read16(uint16_t addr)
+uint16_t Bus::Read16(uint16_t addr, bool bug)
 {
-	uint16_t low = Read(addr);
-	uint16_t high = Read(addr + 1);
-	return  (high << 8) | low;
+	if (!bug)
+	{
+		uint16_t low = Read(addr);
+		uint16_t high = Read(addr + 1);
+		return  (high << 8) | low;
+	}
+	else
+	{
+		// emulates a 6502 bug that caused the low byte to wrap without
+		// incrementing the high byte
+		return  (Read(addr & 0xFF00) << 8) | Read(addr);
+	}
+
 }
 
 bool Bus::Write(uint16_t addr, uint8_t data)

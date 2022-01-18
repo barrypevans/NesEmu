@@ -86,5 +86,10 @@ public:
 	Bus* m_pPpuBus;
 
 	bool m_instructionComplete = false;
+
+	uint32_t m_cycles = 0;
+
+	// Debug
+	void LogState();
 };
 

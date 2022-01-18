@@ -6,8 +6,8 @@
 #include "DisassemblyWidget.h"
 #include "Nes.h"
 
-#include <QHBoxLayout>
-#include <qpushbutton.h>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/qpushbutton.h>
 
 class NesEmu : public QMainWindow
 {
@@ -22,11 +22,13 @@ public:
 	void LoadCartridge();
 	void Tick();
 	void Reset();
+
 private:
 
 	void SetupButton(QPushButton* pButton);
 	void UnpauseEmulation();
 	void PauseEmulation();
+	void ClearRam();
 
     Ui::NesEmuClass ui;
 	MemoryWidget* m_pMemoryWidget;

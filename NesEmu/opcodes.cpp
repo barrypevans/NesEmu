@@ -170,29 +170,28 @@ uint8_t Cpu6502::IND()
 	uint16_t indirectAddr = m_pCpuBus->Read16(pc);
 	pc += 2;
 
-	if (indirectAddr == (indirectAddr & 0x00FF)) // Simulate page boundary hardware bug
-	{
-		absoluteAddr = (m_pCpuBus->Read(indirectAddr & 0xFF00) << 8) | m_pCpuBus->Read(indirectAddr);
-	}
-	else // Behave normally
-	{
-		absoluteAddr = m_pCpuBus->Read16(indirectAddr);
-	}
+	absoluteAddr = (m_pCpuBus->Read((indirectAddr & 0xFF00) | (indirectAddr+1) & 0x00FF) << 8) | m_pCpuBus->Read(indirectAddr);
+
 	return 0;
 }
 
 uint8_t Cpu6502::IZX()
 {
 	uint16_t indirectAddr = m_pCpuBus->Read(pc++);
-	absoluteAddr = m_pCpuBus->Read16(indirectAddr + (uint16_t)X);
+	absoluteAddr = m_pCpuBus->Read16((indirectAddr + (uint16_t)X) & 0x00FF);
 	return 0;
 }
 
 uint8_t Cpu6502::IZY()
 {
 	uint16_t indirectAddr = m_pCpuBus->Read(pc++);
-	uint16_t addrPreOffset = m_pCpuBus->Read16(indirectAddr);
-	absoluteAddr = addrPreOffset + (uint16_t)Y;
+
+	// read address manually to account for zero page wrap
+	uint16_t low = m_pCpuBus->Read(indirectAddr);
+	uint16_t high = m_pCpuBus->Read((indirectAddr + 1) & 0x00FF);
+	uint16_t addrPreOffset = (high << 8) | low;
+
+	absoluteAddr = addrPreOffset + Y;
 
 	// check for page boundry cross
 	return (addrPreOffset & 0xFF00) == (absoluteAddr & 0xFF00) ? 0 : 1;
@@ -219,7 +218,7 @@ uint8_t Cpu6502::AND()
 {
 	A &= (uint8_t)FetchData();
 	SetFlag(N, A & 0x80);
-	SetFlag(C, A == 0x00);
+	SetFlag(Z, A == 0x00);
 	return 1;
 }
 
@@ -627,19 +626,36 @@ uint8_t Cpu6502::PLP()
 
 uint8_t Cpu6502::ROL()
 {
-	uint16_t temp = (FetchData() << 1) | GetFlag(C);
-	SetFlag(N, (temp & 0x00FF) & 0x0080);
-	SetFlag(Z, (temp & 0x00FF) == 0x0000);
-	SetFlag(C, temp & 0xFF00);
+	bool isImp = kInstructions[currentOpCode].addrmode == &Cpu6502::IMP;
+	uint16_t temp = isImp ? A : m_pCpuBus->Read(absoluteAddr);
+
+	uint16_t result = ((uint16_t)GetFlag(C)) | (temp << 1);
+	SetFlag(N, (result & 0x00FF) & 0x0080);
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(C, temp & 0x0080);
+
+	if (isImp)
+		A = result;
+	else
+		m_pCpuBus->Write(absoluteAddr, (uint8_t)(result & 0x00FF));
+
 	return 0;
 }
 
 uint8_t Cpu6502::ROR()
 {
-	uint16_t temp = ((uint16_t)GetFlag(C) << 7) | (FetchData() >> 1);
-	SetFlag(N, (temp & 0x00FF) & 0x0080);
-	SetFlag(Z, (temp & 0x00FF) == 0x0000);
-	SetFlag(C, temp & 0xFF00);
+	bool isImp = kInstructions[currentOpCode].addrmode == &Cpu6502::IMP;
+	uint16_t temp = isImp ? A : m_pCpuBus->Read(absoluteAddr);
+
+	uint16_t result = ((uint16_t)GetFlag(C) << 7) | (temp >> 1);
+	SetFlag(N, (result & 0x00FF) & 0x0080);
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(C, temp & 0x0001);
+
+	if (isImp)
+		A = result;
+	else
+		m_pCpuBus->Write(absoluteAddr, (uint8_t)(result & 0x00FF));
 	return 0;
 }
 
@@ -668,13 +684,14 @@ uint8_t Cpu6502::RTS()
 
 uint8_t Cpu6502::SBC()
 {
-	uint16_t data = ~(uint16_t)FetchData() + 0x0001;
-	uint16_t result = (uint16_t)A + (uint16_t)GetFlag(C) + data;
+	uint16_t data = (uint16_t)FetchData();
+	uint16_t result = (uint16_t)A - (0x0001 - (uint16_t)GetFlag(C)) - data;
 
-	SetFlag(C, result > 0x00FF);
+	SetFlag(C, !(result > 0x00FF));
 	SetFlag(Z, (result & 0x00FF) == 0);
 	// This comes from a long as mother fuckin truth table....
-	SetFlag(V, (~(A ^ data) & (A ^ result)) & 0x0080);
+	// http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+	SetFlag(V, (~(A ^ ~data) & (A ^ result)) & 0x0080);
 	SetFlag(N, result & 0x0080);
 	A = result;
 
@@ -753,8 +770,6 @@ uint8_t Cpu6502::TXA()
 uint8_t Cpu6502::TXS()
 {
 	sp = X;
-	SetFlag(N, sp & 0x80);
-	SetFlag(Z, sp == 0x00);
 	return 0;
 }
 
@@ -770,3 +785,4 @@ uint8_t Cpu6502::XXX()
 {
 	return 0;
 }
+

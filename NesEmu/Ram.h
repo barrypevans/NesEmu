@@ -14,6 +14,7 @@ public:
 	virtual bool Write(uint16_t addr, uint8_t data) override;
 	virtual uint16_t GetSize() override;
 	virtual bool UseVirtualAddressSpace() override { return true; }
+	virtual void Clear();
 
 private:
 	uint8_t* m_memory;

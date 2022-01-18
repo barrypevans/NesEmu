@@ -54,11 +54,12 @@ NesEmu::NesEmu(QWidget *parent)
 
 	m_running = false;
 
-	connect(m_pClockButton, &QPushButton::released, this, &NesEmu::Tick);
+	connect(m_pClockButton, &QPushButton::released, this, [=]() {NesEmu::Tick(); m_pDisassemblyWidget->SetDissasembly(m_pNes->m_pCpuBus, m_pNes->m_pCpu->pc, 10); });
 	connect(m_pResetButton, &QPushButton::released, this, &NesEmu::Reset);
 	connect(m_pPauseButton, &QPushButton::released, this, &NesEmu::PauseEmulation);
 	connect(m_pStartButton, &QPushButton::released, this, &NesEmu::UnpauseEmulation);
-	connect(ui.menuFile, &QMenu::triggered, this, &NesEmu::LoadCartridge);
+	connect(ui.actionLoad_Program, &QAction::triggered, this, &NesEmu::LoadCartridge);
+	connect(ui.actionClear_Ram, &QAction::triggered, this, &NesEmu::ClearRam);
 }
 
 void NesEmu::UpdateEmulation()
@@ -117,10 +118,10 @@ void NesEmu::Tick()
 	m_pNes->Tick();
 	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
 	// Breakpoint hit
-	if (m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc))
+	/*if (m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc))
 	{
 		PauseEmulation();
-	}
+	}*/
 }
 
 void NesEmu::Reset()
@@ -147,4 +148,11 @@ void NesEmu::UnpauseEmulation()
 void NesEmu::PauseEmulation()
 {
 	m_running = false;
+	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus, true);
+}
+
+void NesEmu::ClearRam()
+{
+	m_pNes->m_pCpuRam->Clear();
+	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus, true);
 }

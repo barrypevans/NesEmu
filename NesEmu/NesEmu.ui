@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>921</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -28,12 +28,18 @@
      <string>File</string>
     </property>
     <addaction name="actionLoad_Program"/>
+    <addaction name="actionClear_Ram"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
   <action name="actionLoad_Program">
    <property name="text">
     <string>Load Rom</string>
+   </property>
+  </action>
+  <action name="actionClear_Ram">
+   <property name="text">
+    <string>Clear Ram</string>
    </property>
   </action>
  </widget>

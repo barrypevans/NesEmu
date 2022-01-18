@@ -15,7 +15,7 @@ public:
 	};
 
 	uint8_t Read(uint16_t addr);
-	uint16_t Read16(uint16_t addr);
+	uint16_t Read16(uint16_t addr, bool bug = false);
 	bool Write(uint16_t addr, uint8_t data);
 	
 	void RegisterMemoryDevice(IMemoryDevice* device, uint16_t virtualBusOffset);

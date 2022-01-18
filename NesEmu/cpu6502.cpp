@@ -1,5 +1,7 @@
 #include "cpu6502.h"
 #include <stdlib.h>
+#include "Utils.h"
+#include <QDebug>
 
 Cpu6502::Cpu6502(Bus* pCpuBus, Bus* pPpuBus)
 {
@@ -22,7 +24,7 @@ void Cpu6502::Reset()
 	A = 0x00;
 	X = 0x00;
 	Y = 0x00;
-	status = 0x00 | U;
+	status = 0x00 | U | I;
 
 	// stack starts at 0x01FD
 	sp = 0xFD;
@@ -32,14 +34,16 @@ void Cpu6502::Reset()
 	uint16_t lo = m_pCpuBus->Read(pcInitAddr);
 	uint16_t hi = m_pCpuBus->Read(pcInitAddr+1);
 	pc = (hi << 8) + lo;
-
+	
+	
 	// reset helper state
 	currentOpCode = 0x00;
 	absoluteAddr = 0x0000;
 	relativeAddr = 0x0000;
 
 	// reset takes 8 cycles
-	remainingCycles = 0x08;
+	remainingCycles = 0x07;
+	m_cycles = 0;
 }
 
 /*
@@ -83,6 +87,7 @@ void Cpu6502::Tick()
 {
 	if (remainingCycles == 0)
 	{
+		LogState();
 		currentOpCode = m_pCpuBus->Read(pc++);
 
 		Instruction instruction = kInstructions[currentOpCode];
@@ -108,4 +113,14 @@ void Cpu6502::Tick()
 
 	if (remainingCycles == 0)
 		m_instructionComplete = true;
+
+	m_cycles++;
+}
+
+void Cpu6502::LogState()
+{
+	
+	std::vector<Utils::DisassembledInstruction> disasm;
+	Utils::DissassembleFix(disasm, m_pCpuBus, pc, 1, false);
+	qInfo("%s            A:%x X:%x Y:%x P:%x SP:%x CYC:%d", disasm[0].mnemonic.toStdString().c_str(), A, X, Y, status, sp, m_cycles );
 }
