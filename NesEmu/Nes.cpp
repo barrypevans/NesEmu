@@ -63,6 +63,7 @@ void Nes::InsertCartridge(std::string romPath)
 
 	// If cartrigfe fails to load, remove it.
 	if (!m_pCart->IsCatridgeReady()) RemoveCartridge();
+	m_pCpu->Reset();
 }
 
 void Nes::RemoveCartridge()

@@ -31,9 +31,7 @@ void Cpu6502::Reset()
 
 	// initial program counter adderess is always storead at 0xFFFC
 	const uint16_t pcInitAddr = 0xFFFC;
-	uint16_t lo = m_pCpuBus->Read(pcInitAddr);
-	uint16_t hi = m_pCpuBus->Read(pcInitAddr+1);
-	pc = (hi << 8) + lo;
+	pc = m_pCpuBus->Read16(pcInitAddr);
 
 	
 	// reset helper state
