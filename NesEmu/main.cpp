@@ -1,6 +1,7 @@
 #include "NesEmu.h"
 #include <QtWidgets/QApplication>
 #include <QStyleFactory>
+
 #include "Nes.h"
 
 void ApplyDarkTheme(QApplication& app)
@@ -32,18 +33,25 @@ void ApplyDarkTheme(QApplication& app)
 }
 
 
+
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 	NesEmu* w = new NesEmu();
 	w->show();
 	ApplyDarkTheme(a);
+	
+	EmulationThread* thread = new EmulationThread(w);
+	thread->start();
 
-	while (w-> isVisible())
+	while (w->isVisible())
 	{
-		w->UpdateEmulation();
+		w->UIUpdate();
 		QCoreApplication::processEvents();
 	}
+
+	thread->wait();
 
 	//return a.exec();
 	return 0;

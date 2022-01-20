@@ -4,10 +4,13 @@
 #include "ui_NesEmu.h"
 #include "MemoryWidget.h"
 #include "DisassemblyWidget.h"
+#include "ScreenWidget.h"
 #include "Nes.h"
 
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/qpushbutton.h>
+
+#include <QThread>
 
 class NesEmu : public QMainWindow
 {
@@ -22,6 +25,8 @@ public:
 	void LoadCartridge();
 	void Tick();
 	void Reset();
+
+	void UIUpdate();
 
 private:
 
@@ -41,6 +46,8 @@ private:
 	QPushButton* m_pStartButton;
 	QPushButton* m_pResetButton;
 
+	ScreenWidget* m_pScreenWidget;
+
 	QIcon m_clockIcon;
 	QIcon m_resetIcon;
 	QIcon m_startIcon;
@@ -52,4 +59,14 @@ private:
 	const static int kButtonHeight;
 	const static int kIconSize;
 	const static QString kTitle;
+};
+
+class EmulationThread : public QThread
+{
+	Q_OBJECT
+public:
+	EmulationThread(NesEmu* pEmu);
+	NesEmu* pEmulator;
+private:
+	void run();
 };

@@ -25,7 +25,7 @@ uint8_t Bus::Read(uint16_t addr)
 	}
 	// Subtract the virtual offset from the proposed address to read from the correct position in the 
 	// memory device's virtual address space
-	uint16_t finalAddr = memoryDeviceMapping.m_pDevice->UseVirtualAddressSpace() ? addr - memoryDeviceMapping.m_virtualBusOffset : addr;
+	uint16_t finalAddr = TranslateAddress(memoryDeviceMapping, addr);
 	return memoryDeviceMapping.m_pDevice->Read(finalAddr);
 }
 
@@ -53,9 +53,10 @@ bool Bus::Write(uint16_t addr, uint8_t data)
 	if (memoryDeviceMapping.m_pDevice == nullptr)
 		return false;
 
-	// Subtract the virtual offset from the proposed address to read from the correct position in the 
-	// memory device's virtual address space
-	uint16_t finalAddr = memoryDeviceMapping.m_pDevice->UseVirtualAddressSpace() ? addr - memoryDeviceMapping.m_virtualBusOffset : addr;
+	if (addr > memoryDeviceMapping.m_endAddress) // outside of this address range.
+		return false;
+
+	uint16_t finalAddr = TranslateAddress(memoryDeviceMapping, addr);
 	
 	if (memoryDeviceMapping.m_pDevice->Write(finalAddr, data))
 	{
@@ -69,14 +70,25 @@ bool Bus::Write(uint16_t addr, uint8_t data)
 
 void Bus::RegisterMemoryDevice(IMemoryDevice * pDevice, uint16_t virtualBusOffset)
 {
+	RegisterMemoryDevice(pDevice, virtualBusOffset, virtualBusOffset + pDevice->GetSize() - 1, 0);
+}
+
+void Bus::RegisterMemoryDeviceMirror(IMemoryDevice* pDevice, uint16_t virtualBusOffset, uint8_t mirrorCount)
+{
+	uint16_t mirroredEnd = virtualBusOffset + (pDevice->GetSize() * (mirrorCount + 1)) - 1;
+	RegisterMemoryDevice(pDevice, virtualBusOffset, mirroredEnd, mirrorCount);
+}
+
+void Bus::RegisterMemoryDevice(IMemoryDevice* pDevice, uint16_t virtualBusOffset, uint16_t endAddress, uint8_t mirrorCount)
+{
 	// Make sure this device does not map outside the bus
 	assert(pDevice->GetSize() + virtualBusOffset <= kBusSize);
 
 	// Make sure we dont add overlapping devices
-	assert(!DeviceExistsInRange(virtualBusOffset, virtualBusOffset + pDevice->GetSize()-1));
+	assert(!DeviceExistsInRange(virtualBusOffset, endAddress));
 
 	// Add new device to the device list
-	m_memoryDeviceMappings[m_numMemoryDevices] = { pDevice, virtualBusOffset };
+	m_memoryDeviceMappings[m_numMemoryDevices] = { pDevice, virtualBusOffset, endAddress, mirrorCount};
 	m_numMemoryDevices++;
 }
 
@@ -107,9 +119,8 @@ Bus::MemoryDeviceMapping& Bus::FetchMemoryInterfaceAtAddress(uint16_t addr)
 	while (deviceIndex < m_numMemoryDevices)
 	{
 		MemoryDeviceMapping& deviceMapping = m_memoryDeviceMappings[deviceIndex];
-		uint16_t virtualEndAddress = deviceMapping.m_virtualBusOffset + deviceMapping.m_pDevice->GetSize();
 		// Checking if the given address falls between the start and end of this devices address space
-		if (deviceMapping.m_virtualBusOffset <= addr && virtualEndAddress > addr)
+		if (deviceMapping.m_virtualBusOffset <= addr && deviceMapping.m_endAddress > addr)
 			return deviceMapping;
 		deviceIndex++;
 	}
@@ -122,14 +133,30 @@ bool Bus::DeviceExistsInRange(uint16_t startAddr, uint16_t endAddr)
 	while (deviceIndex < m_numMemoryDevices)
 	{
 		MemoryDeviceMapping& deviceMapping = m_memoryDeviceMappings[deviceIndex];
-		uint16_t virtualEndAddress = deviceMapping.m_virtualBusOffset + deviceMapping.m_pDevice->GetSize();
 		// If the start or end of this device's virtual address space lands in the range, this device IS in range
-		if ((deviceMapping.m_virtualBusOffset >= startAddr && deviceMapping.m_virtualBusOffset <= endAddr) ||
-			(virtualEndAddress > startAddr && virtualEndAddress < endAddr))
+		if ((deviceMapping.m_virtualBusOffset >= startAddr && deviceMapping.m_virtualBusOffset < endAddr) ||
+			(deviceMapping.m_endAddress >= startAddr && deviceMapping.m_endAddress < endAddr))
 		{
 			return true;
 		}
 		deviceIndex++;
 	}
 	return false;
+}
+
+uint16_t Bus::TranslateAddress(MemoryDeviceMapping& mapping, uint16_t address)
+{
+	// Subtract the virtual offset from the proposed address to read from the correct position in the 
+	// memory device's virtual address space
+	// also account for any mirroring
+	uint16_t finalAddr = address;
+	if (mapping.m_pDevice->UseVirtualAddressSpace())
+	{
+		finalAddr = address - mapping.m_virtualBusOffset;
+		if (mapping.m_mirrorCount > 0 && finalAddr >= mapping.m_pDevice->GetSize())
+		{
+			finalAddr = address % mapping.m_pDevice->GetSize();
+		}
+	}
+	return finalAddr;
 }

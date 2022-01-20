@@ -18,6 +18,7 @@ NesEmu::NesEmu(QWidget *parent)
 	QVBoxLayout* pToolBarLayout = new QVBoxLayout();
 	QHBoxLayout* pButtonLayout = new QHBoxLayout();
 	m_layout = new QHBoxLayout();
+	m_pScreenWidget = new ScreenWidget();
 	QWidget* centralWidget = new QWidget();
 	centralWidget->setLayout(m_layout);
 	setCentralWidget(centralWidget);
@@ -52,6 +53,8 @@ NesEmu::NesEmu(QWidget *parent)
 	pMainLayout->addWidget(m_pMemoryWidget, Qt::AlignHCenter);
 	pMainLayout->addWidget(m_pDisassemblyWidget);
 
+	m_pScreenWidget->show();
+
 	m_running = false;
 
 	connect(m_pClockButton, &QPushButton::released, this, [=]() {NesEmu::Tick(); m_pDisassemblyWidget->SetDissasembly(m_pNes->m_pCpuBus, m_pNes->m_pCpu->pc, 10); });
@@ -67,29 +70,6 @@ void NesEmu::UpdateEmulation()
 	if(m_running)
 		Tick();
 }
-
-//void NesEmu::UploadProgram()
-//{
-//	/*QStringList fileNames = QFileDialog::getOpenFileNames(this, tr("Open File"), "C:/", tr("6502 Programs (*.bin)"));
-//	if (fileNames.size() > 0)
-//	{
-//		QString filename = fileNames[0];
-//		size_t dataLength = 0;
-//		uint8_t* bin = (uint8_t*)Utils::LoadEntireFile(filename.toStdString().c_str(), dataLength, false);
-//
-//		if (bin)
-//		{
-//			m_pNes->UploadProgram(bin, dataLength);
-//			m_pNes->Reset();
-//
-//			m_pDisassemblyWidget->SetDissasembly(bin, dataLength);
-//
-//			m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
-//
-//			setWindowTitle(kTitle.arg(filename));
-//		}
-//	}*/
-//}
 
 void NesEmu::LoadCartridge()
 {
@@ -116,7 +96,7 @@ void NesEmu::LoadCartridge()
 void NesEmu::Tick()
 {
 	m_pNes->Tick();
-	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
+	m_pScreenWidget->Render(m_pNes->m_pPpu);
 	// Breakpoint hit
 	/*if (m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc))
 	{
@@ -129,6 +109,12 @@ void NesEmu::Reset()
 	m_pNes->Reset();
 	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus, true);
 	m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc);
+}
+
+void NesEmu::UIUpdate()
+{
+	m_pScreenWidget->UIRender();
+	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
 }
 
 void NesEmu::SetupButton(QPushButton * pButton)
@@ -155,4 +141,17 @@ void NesEmu::ClearRam()
 {
 	m_pNes->m_pCpuRam->Clear();
 	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus, true);
+}
+
+EmulationThread::EmulationThread(NesEmu* pEmu)
+{
+	pEmulator = pEmu;
+}
+
+void EmulationThread::run()
+{
+	while (pEmulator->isVisible())
+	{
+		pEmulator->UpdateEmulation();
+	}
 }

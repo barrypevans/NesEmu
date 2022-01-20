@@ -84,11 +84,11 @@ void MemoryWidget::UpdateState(Cpu6502 * pCpu, Bus * pBus, bool fullUpdate)
 
 void MemoryWidget::UpdateDatum(uint16_t addr, uint8_t datum)
 {
-	int row = addr / 32;
+	/*int row = addr / 32;
 	int col = addr % 32;
 	QString stringVal = Utils::IntToHexString(datum);
 	QTableWidgetItem* item = m_pRamTable->item(row, col);
-	item->setText(stringVal);
+	item->setText(stringVal);*/
 }
 
 void MemoryWidget::SetupRamTable()

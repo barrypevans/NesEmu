@@ -14,8 +14,8 @@ Cartridge::Cartridge(std::string romPath, Bus * pCpuBus, Bus * pPpuBus):m_pCpuBu
 	// connect mapper to bus
 	m_pCpuInterface = new CartridgeCPUInterface(this);
 	m_pPpuInterface = new CartridgePPUInterface(this);
-	m_pCpuBus->RegisterMemoryDevice(m_pCpuInterface, 0x4020);
-	m_pPpuBus->RegisterMemoryDevice(m_pPpuInterface, 0x0000);
+	m_pCpuBus->RegisterMemoryDevice(m_pCpuInterface, 0x4020); // hook up program memory
+	m_pPpuBus->RegisterMemoryDevice(m_pPpuInterface, 0x0000); // hook up pattern table memory
 
 	m_cartridgeReady = true;
 }
