@@ -22,6 +22,8 @@ ScreenWidget::~ScreenWidget()
 
 void ScreenWidget::Render(Ppu2C02* pPpu)
 {
+    if (pPpu->m_scanline < 0) return;
+
     m_pImage->setPixel(pPpu->m_cycle, pPpu->m_scanline, rand());
 
     if (pPpu->m_frameCompleted)

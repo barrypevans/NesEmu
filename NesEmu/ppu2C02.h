@@ -8,6 +8,7 @@ public:
 	~Ppu2C02();
 
 	void Tick();
+	void GetPatternTable(uint32_t* pData, uint8_t index);
 
 	Bus* m_pPpuBus;
 	Bus* m_pCpuBus;
@@ -16,7 +17,7 @@ public:
 	int16_t m_cycle = 0;
 	bool m_frameCompleted = false;
 
-	class PPURegisterInterface : public IMemoryDevice 
+	class PPURegisterInterface : public IMemoryDevice
 	{
 
 		// Inherited via IMemoryDevice
@@ -26,19 +27,29 @@ public:
 		virtual bool UseVirtualAddressSpace() override;
 		Ppu2C02* m_pPpu;
 
-		public: 
+	public:
 		void SetPpu(Ppu2C02* ppu) { m_pPpu = ppu; };
-		
+
 	};
 	PPURegisterInterface* m_pRegisterInterface;
 
-	union 
+	union
 	{
-		uint8_t m_control;
+		union
+		{
+			struct
+			{
+				bool m_enableNmi : 1;
+				uint8_t m_1 : 1;
+				uint8_t m_2 : 1;
+				uint8_t m_garbo : 5;
+			};
+			uint8_t m_control;
+		};
 		uint8_t m_mask;
 		union
 		{
-			struct 
+			struct
 			{
 				uint8_t m_verticalBlank : 1;
 				uint8_t m_spriteHit : 1;
@@ -56,7 +67,7 @@ public:
 		uint8_t m_registers[8];
 	};
 
-	enum 
+	enum
 	{
 		CONTROL_REG,
 		MASK_REG,
@@ -70,6 +81,10 @@ public:
 
 	uint8_t m_addrLatch = 0;
 	uint16_t m_bufferedAddr = 0;
+
+	bool m_nmi;
+
+	uint32_t m_debugPalette[4] = {0x00000000, 0xFF00FF00, 0xFF0000FF, 0xFFFF0000};
 
 		/*84  84  84    0  30 116    8  16 144   48   0 136   68   0 100   92   0  48   84   4   0   60  24   0   32  42   0    8  58   0    0  64   0    0  60   0    0  50  60    0   0   0
 		152 150 152    8  76 196   48  50 236   92  30 228  136  20 176  160  20 100  152  34  32  120  60   0   84  90   0   40 114   0    8 124   0    0 118  40    0 102 120    0   0   0

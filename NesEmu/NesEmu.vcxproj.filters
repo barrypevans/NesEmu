@@ -80,6 +80,12 @@
     <ClCompile Include="ScreenWidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PatternTableWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h">
@@ -132,8 +138,8 @@
     <QtMoc Include="ScreenWidget.h">
       <Filter>Header Files</Filter>
     </QtMoc>
-    <QtMoc Include="main.cpp">
-      <Filter>Source Files</Filter>
+    <QtMoc Include="PatternTableWidget.h">
+      <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

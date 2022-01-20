@@ -115,6 +115,7 @@
     <ClCompile Include="Messager.cpp" />
     <ClCompile Include="Nes.cpp" />
     <ClCompile Include="opcodes.cpp" />
+    <ClCompile Include="PatternTableWidget.cpp" />
     <ClCompile Include="ppu2C02.cpp" />
     <ClCompile Include="Ram.cpp" />
     <ClCompile Include="ScreenWidget.cpp" />
@@ -144,6 +145,7 @@
     <ClInclude Include="MemoryWidget.h" />
     <ClInclude Include="Messager.h" />
     <ClInclude Include="Nes.h" />
+    <QtMoc Include="PatternTableWidget.h" />
     <ClInclude Include="ppu2C02.h" />
     <ClInclude Include="Ram.h" />
     <QtMoc Include="ScreenWidget.h" />

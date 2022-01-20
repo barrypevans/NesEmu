@@ -19,6 +19,7 @@ NesEmu::NesEmu(QWidget *parent)
 	QHBoxLayout* pButtonLayout = new QHBoxLayout();
 	m_layout = new QHBoxLayout();
 	m_pScreenWidget = new ScreenWidget();
+	m_pPatternTableWidget = new PatternTableWidget();
 	QWidget* centralWidget = new QWidget();
 	centralWidget->setLayout(m_layout);
 	setCentralWidget(centralWidget);
@@ -54,10 +55,11 @@ NesEmu::NesEmu(QWidget *parent)
 	pMainLayout->addWidget(m_pDisassemblyWidget);
 
 	m_pScreenWidget->show();
+	m_pPatternTableWidget->show();
 
 	m_running = false;
 
-	connect(m_pClockButton, &QPushButton::released, this, [=]() {NesEmu::Tick(); m_pDisassemblyWidget->SetDissasembly(m_pNes->m_pCpuBus, m_pNes->m_pCpu->pc, 10); });
+	connect(m_pClockButton, &QPushButton::released, this, [=]() {NesEmu::Tick(); NesEmu::Tick(); NesEmu::Tick(); m_pDisassemblyWidget->SetDissasembly(m_pNes->m_pCpuBus, m_pNes->m_pCpu->pc, 10); });
 	connect(m_pResetButton, &QPushButton::released, this, &NesEmu::Reset);
 	connect(m_pPauseButton, &QPushButton::released, this, &NesEmu::PauseEmulation);
 	connect(m_pStartButton, &QPushButton::released, this, &NesEmu::UnpauseEmulation);
@@ -97,6 +99,8 @@ void NesEmu::Tick()
 {
 	m_pNes->Tick();
 	m_pScreenWidget->Render(m_pNes->m_pPpu);
+	m_pPatternTableWidget->Render(m_pNes->m_pPpu);
+
 	// Breakpoint hit
 	/*if (m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc))
 	{
@@ -114,7 +118,10 @@ void NesEmu::Reset()
 void NesEmu::UIUpdate()
 {
 	m_pScreenWidget->UIRender();
+	m_pPatternTableWidget->UIRender();
 	m_pMemoryWidget->UpdateState(m_pNes->m_pCpu, m_pNes->m_pCpuBus);
+	m_pDisassemblyWidget->SetDissasembly(m_pNes->m_pCpuBus, m_pNes->m_pCpu->pc, 10);
+	m_pDisassemblyWidget->Update(m_pNes->m_pCpu->pc);
 }
 
 void NesEmu::SetupButton(QPushButton * pButton)

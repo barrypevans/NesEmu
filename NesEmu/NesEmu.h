@@ -5,6 +5,7 @@
 #include "MemoryWidget.h"
 #include "DisassemblyWidget.h"
 #include "ScreenWidget.h"
+#include "PatternTableWidget.h"
 #include "Nes.h"
 
 #include <QtWidgets/QHBoxLayout>
@@ -21,7 +22,6 @@ public:
 	
 	void UpdateEmulation();
 
-	/*void UploadProgram();*/
 	void LoadCartridge();
 	void Tick();
 	void Reset();
@@ -47,6 +47,7 @@ private:
 	QPushButton* m_pResetButton;
 
 	ScreenWidget* m_pScreenWidget;
+	PatternTableWidget* m_pPatternTableWidget;
 
 	QIcon m_clockIcon;
 	QIcon m_resetIcon;

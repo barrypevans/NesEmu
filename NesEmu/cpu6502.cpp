@@ -34,7 +34,7 @@ void Cpu6502::Reset()
 	uint16_t lo = m_pCpuBus->Read(pcInitAddr);
 	uint16_t hi = m_pCpuBus->Read(pcInitAddr+1);
 	pc = (hi << 8) + lo;
-	pc = 0xc000;
+
 	
 	// reset helper state
 	currentOpCode = 0x00;

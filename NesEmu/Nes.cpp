@@ -40,6 +40,13 @@ void Nes::Tick()
 	m_pPpu->Tick();
 	if ((m_tickCount % 3) == 0)
 		m_pCpu->Tick();
+	
+	if (m_pPpu->m_nmi == true)
+	{
+		m_pPpu->m_nmi = false;
+		m_pCpu->Nmi();
+	}
+
 	m_tickCount++;
 }
 
