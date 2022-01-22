@@ -24,7 +24,7 @@ public:
 	void UnregisterMemoryDevice(IMemoryDevice* device);
 
 	const static uint8_t kMaxMemoryDevices = 16;
-	const static uint16_t kBusSize = 0xFFFF;
+	const static uint32_t kBusSize = 0x10000;
 	
 private:
 

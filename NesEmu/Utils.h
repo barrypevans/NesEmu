@@ -25,7 +25,8 @@ public:
 	{
 		std::vector<DisassembledInstruction> result;
 		uint16_t pc = startAddr;
-		while (pc < startAddr+length)
+		uint16_t numInstructions = 0;
+		while (numInstructions < length)
 		{
 			DisassembledInstruction resultOp;
 			resultOp.start = pc;
@@ -94,7 +95,7 @@ public:
 			else if (inst.addrmode == &Cpu6502::REL)
 			{
 				uint16_t offset = pCpuBus->Read(pc++);
-				if (offset & 0x0080 > 0)
+				if ((offset & 0x0080) > 0)
 					offset |= 0xFF00;
 				uint16_t absoluteAddr = pc + offset;
 				resultOp.mnemonic += QString("$%1 [%2] <REL>").arg(IntToHexString(offset), IntToHexString(absoluteAddr, 4));
@@ -102,6 +103,7 @@ public:
 			if (nullTerminate) resultOp.mnemonic += QString("\n");
 			resultOp.end = pc - 1;
 			result.push_back(resultOp);
+			numInstructions++;
 		}
 
 		return result;

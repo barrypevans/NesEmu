@@ -61,7 +61,7 @@ void MemoryWidget::UpdateState(Cpu6502 * pCpu, Bus * pBus, bool fullUpdate)
 	}
 
 
-	if (fullUpdate)
+	/*if (fullUpdate)
 	{
 		int row = 0;
 		while (row < 2048)
@@ -79,7 +79,7 @@ void MemoryWidget::UpdateState(Cpu6502 * pCpu, Bus * pBus, bool fullUpdate)
 			}
 			++row;
 		}
-	}
+	}*/
 }
 
 void MemoryWidget::UpdateDatum(uint16_t addr, uint8_t datum)

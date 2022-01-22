@@ -59,7 +59,13 @@ NesEmu::NesEmu(QWidget *parent)
 
 	m_running = false;
 
-	connect(m_pClockButton, &QPushButton::released, this, [=]() {NesEmu::Tick(); NesEmu::Tick(); NesEmu::Tick(); m_pDisassemblyWidget->SetDissasembly(m_pNes->m_pCpuBus, m_pNes->m_pCpu->pc, 10); });
+	connect(m_pClockButton, &QPushButton::released, this, [=]() 
+	{
+		do
+		{
+			Tick(); Tick(); Tick();
+		} while (m_pNes->m_pCpu->remainingCycles > 0);
+		m_pDisassemblyWidget->SetDissasembly(m_pNes->m_pCpuBus, m_pNes->m_pCpu->pc, 10); });
 	connect(m_pResetButton, &QPushButton::released, this, &NesEmu::Reset);
 	connect(m_pPauseButton, &QPushButton::released, this, &NesEmu::PauseEmulation);
 	connect(m_pStartButton, &QPushButton::released, this, &NesEmu::UnpauseEmulation);

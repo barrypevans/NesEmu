@@ -1,5 +1,6 @@
 #include "Cartridge.h"
 #include "Mapper000.h"
+#include "Utils.h"
 
 Cartridge::Cartridge(std::string romPath, Bus * pCpuBus, Bus * pPpuBus):m_pCpuBus(pCpuBus), m_pPpuBus(pPpuBus)
 {
@@ -18,6 +19,15 @@ Cartridge::Cartridge(std::string romPath, Bus * pCpuBus, Bus * pPpuBus):m_pCpuBu
 	m_pPpuBus->RegisterMemoryDevice(m_pPpuInterface, 0x0000); // hook up pattern table memory
 
 	m_cartridgeReady = true;
+
+	std::vector<Utils::DisassembledInstruction> disassm = Utils::Dissassemble(m_pCpuBus, 0xc004, 1000);
+	std::string output = "";
+	for (int i = 0; i < disassm.size(); ++i)
+	{
+		
+		output += disassm[i].mnemonic.toStdString();
+	}
+	Utils::DumpToFile("C:\\Users\\barry\\nestest.txt", (void*)output.c_str(), output.size());
 }
 
 Cartridge::~Cartridge()
@@ -64,18 +74,18 @@ uint8_t Cartridge::PpuRead(uint16_t addr)
 bool Cartridge::PpuWrite(uint16_t addr, uint8_t data)
 {
 	uint16_t finalAddr;
-	if (m_pMapper->PpuRemap(addr, finalAddr))
+	/*if (m_pMapper->PpuRemap(addr, finalAddr))
 	{
 		m_pChrMemory[finalAddr] = data;
 		return true;
-	}
+	}*/
 	return false;
 }
 
 bool Cartridge::InitMapper()
 {
 	m_mapperId = ((m_iNesHeader.mapper2 >> 4) << 4) | (m_iNesHeader.mapper1 << 4);
-	switch (m_mapperId)
+	switch (0)
 	{
 	case 0:
 		m_pMapper = new Mapper000(m_iNesHeader);

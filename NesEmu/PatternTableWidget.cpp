@@ -26,8 +26,8 @@ void PatternTableWidget::Render(Ppu2C02* pPpu)
 {
     if (pPpu->m_frameCompleted)
     {
-        pPpu->GetPatternTable(m_rawTable1, 0);
-        pPpu->GetPatternTable(m_rawTable2, 1);
+        pPpu->GetPatternTable(m_rawTable1, 0, m_paletteIndex);
+        pPpu->GetPatternTable(m_rawTable2, 1, m_paletteIndex);
 
         for (int i = 0; i < 128; i++)
         {
@@ -41,7 +41,7 @@ void PatternTableWidget::Render(Ppu2C02* pPpu)
         {
             for (int j = 0; j < 128; j++)
             {
-                m_pImage->setPixel(i+128, j, m_rawTable2[i + j * 128]);
+                m_pImage->setPixel(i + 128, j,  m_rawTable2[i + j * 128]);
             }
         }
 
@@ -56,4 +56,13 @@ void PatternTableWidget::Render(Ppu2C02* pPpu)
 void PatternTableWidget::UIRender()
 {
     m_pPixmapItem->setPixmap(*m_pFrameBuffer);
+}
+
+void PatternTableWidget::keyPressEvent(QKeyEvent* ev)
+{
+    if (ev->key() == Qt::Key_P)
+    {
+        m_paletteIndex++;
+        m_paletteIndex = m_paletteIndex % 16;
+    }
 }

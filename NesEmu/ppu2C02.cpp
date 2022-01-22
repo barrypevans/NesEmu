@@ -1,10 +1,12 @@
 ﻿#include "ppu2C02.h"
 
-Ppu2C02::Ppu2C02(Bus * pPpuBus, Bus * pCpuBus)
+Ppu2C02::Ppu2C02(Bus* pPpuBus, Bus* pCpuBus)
 {
 	m_pPpuBus = pPpuBus;
 	m_pRegisterInterface = new PPURegisterInterface();
 	m_pRegisterInterface->SetPpu(this);
+	memset(m_registers, 0, 8);
+	m_enableNmi = false;
 }
 
 Ppu2C02::~Ppu2C02()
@@ -15,15 +17,16 @@ Ppu2C02::~Ppu2C02()
 void Ppu2C02::Tick()
 {
 
+	if (m_cycle == 1 && m_scanline == -1)
+	{
+		m_verticalBlank = 0;
+	}
+
 	if (m_cycle == 1 && m_scanline == 241)
 	{
 		m_verticalBlank = 1;
-		if(m_enableNmi)
+		if (m_enableNmi)
 			m_nmi = true;
-	}
-	else if (m_cycle == 1 && m_scanline == -1)
-	{
-		m_verticalBlank = 0;
 	}
 
 	m_frameCompleted = false;
@@ -38,9 +41,11 @@ void Ppu2C02::Tick()
 			m_frameCompleted = true;
 		}
 	}
+
+
 }
 
-void Ppu2C02::GetPatternTable(uint32_t* pData, uint8_t index)
+void Ppu2C02::GetPatternTable(uint32_t* pData, uint8_t index, uint8_t palette)
 {
 	uint16_t tableOffset = index * 0x1000;
 	for (uint8_t tile_x = 0; tile_x < 16; ++tile_x)
@@ -56,20 +61,27 @@ void Ppu2C02::GetPatternTable(uint32_t* pData, uint8_t index)
 				uint8_t tileMSB = m_pPpuBus->Read(baseAddr + 8);
 				for (uint8_t pixel_y = 0; pixel_y < 8; ++pixel_y)
 				{
-					uint8_t paletteIndex = (tileLSB & 0x01) | ((tileMSB & 0x01) << 1);
+					uint8_t paletteIndex = (tileLSB & 0x01) << 1 | (tileMSB & 0x01);
 					tileLSB >>= 1;
 					tileMSB >>= 1;
 					
 					uint16_t pixelIndexX = tile_x * 8 + (7 - pixel_y);
 					uint16_t pixelIndexY = tile_y * 8 + pixel_x;
 					uint16_t pixelIndex = pixelIndexX + pixelIndexY * 128;
-					pData[pixelIndex] = m_debugPalette[paletteIndex];
+					uint32_t color = GetColorFromPalette(paletteIndex, palette);
+					pData[pixelIndex] = ((color & 0x0000FFFF) << 16) | ((color & 0xFFFF0000) >> 16);
 				}
 			}
 		}
 	}
 }
 
+uint32_t Ppu2C02::GetColorFromPalette(uint8_t index, uint8_t palette)
+{
+	uint16_t addr = 0x3F00 + index + palette * 4;
+	uint8_t colorIndex = m_pPpuBus->Read(addr) & 0x3F;
+	return m_paletteColors[colorIndex] ;
+}
 
 uint8_t Ppu2C02::PPURegisterInterface::Read(uint16_t addr)
 {
@@ -77,7 +89,7 @@ uint8_t Ppu2C02::PPURegisterInterface::Read(uint16_t addr)
 	{
 		// only care about the top three bits of the status register
 		// the bottom bits are usually noise, or whatever was last in the data register...🤷
-		uint8_t data = (m_pPpu->m_status & 0xE0) | (m_pPpu->m_data & 0x1F); 
+		uint8_t data = (m_pPpu->m_status & 0xE0) | (m_pPpu->m_bufferedData & 0x1F);
 
 		// reading the status register always sets the vblank flag to 0
 		m_pPpu->m_verticalBlank = 0;
@@ -87,7 +99,15 @@ uint8_t Ppu2C02::PPURegisterInterface::Read(uint16_t addr)
 	
 	if (addr == DATA_REG)// auto increment addr on read and write
 	{
-		m_pPpu->m_addr++;
+		uint8_t outputData = m_pPpu->m_bufferedData;
+		m_pPpu->m_bufferedData = m_pPpu->m_pPpuBus->Read(m_pPpu->m_bufferedAddr);
+		if (m_pPpu->m_bufferedAddr >= 0x03F00) // reading palette memory instantiously
+		{
+			outputData = m_pPpu->m_bufferedData;
+		}
+		m_pPpu->m_bufferedAddr++;
+		
+		return outputData;
 	}
 
 	return m_pPpu->m_registers[addr];
@@ -100,26 +120,29 @@ bool Ppu2C02::PPURegisterInterface::Write(uint16_t addr, uint8_t data)
 		// alternatively buffer upper and lower bytes
 		if (m_pPpu->m_addrLatch == 0)
 		{
-			m_pPpu->m_bufferedAddr = (m_pPpu->m_addr & 0x00FF) | (((uint16_t)data) << 1);
+			m_pPpu->m_addr = data;
 			m_pPpu->m_addrLatch = 1;
 		}
 		else
 		{
-			m_pPpu->m_bufferedAddr = (m_pPpu->m_addr & 0xFF00) | data;
+			m_pPpu->m_bufferedAddr = ((uint16_t)m_pPpu->m_addr << 8) | (uint16_t)data;
+			m_pPpu->m_addr = data;
 			m_pPpu->m_addrLatch = 0;
-			
-			if (m_pPpu->m_bufferedAddr > 0x03F00) // reading palette memory instantiously
-			{
-				m_pPpu->m_data = m_pPpu->m_pPpuBus->Read(m_pPpu->m_bufferedAddr);
-			}
 		}
-		// auto increment addr on read and write
-		m_pPpu->m_addr++;
-
 	}
-
-	if(addr != STATUS_REG) // cant write to the status register from cpu
+	else if (addr == DATA_REG)
+	{
+		m_pPpu->m_pPpuBus->Write(m_pPpu->m_bufferedAddr, data);
+		m_pPpu->m_bufferedAddr++;
+	}
+	else if (addr != STATUS_REG) // cant write to the status register from cpu
+	{
 		m_pPpu->m_registers[addr] = data;
+	}
+	else
+	{
+		return false;
+	}
 	
 	return true;
 }
@@ -133,3 +156,4 @@ bool Ppu2C02::PPURegisterInterface::UseVirtualAddressSpace()
 {
 	return true;
 }
+

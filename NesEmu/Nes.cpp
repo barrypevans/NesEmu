@@ -7,12 +7,17 @@ Nes::Nes()
 
 	m_pPpuBus = new Bus();
 	m_pNameTableRam = new Ram(0x1000);
-	m_pPaletteRam = new Ram(0x0100);
+	
+	m_pPaletteRam = (uint8_t*)malloc(0x0020);
+	memset(m_pPaletteRam, 0, 0x0020);
+	m_pPaletteRamInterface = new PaletteRamInterface();
+	m_pPaletteRamInterface->SetMemory(m_pPaletteRam);
+
 
 	// hook up on board ppu ram
 	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x2000);
 	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x3000, 0x3EFF); // 2k name table is mirrored
-	m_pPpuBus->RegisterMemoryDevice(m_pPaletteRam, 0x3F00);
+	m_pPpuBus->RegisterMemoryDevice(m_pPaletteRamInterface, 0x3F00);
 
 	// first 2k of ram mirror across the first 8k of address bus
 	m_pCpuBus->RegisterMemoryDeviceMirror(m_pCpuRam, 0x0000, 3);
@@ -33,6 +38,7 @@ Nes::~Nes()
 	delete m_pCpu;
 	delete m_pCpuRam;
 	delete m_pCpuBus;
+	free(m_pPaletteRam);
 }
 
 void Nes::Tick()
@@ -70,4 +76,34 @@ void Nes::RemoveCartridge()
 {
 	if (m_pCart) delete m_pCart;
 	m_pCart = nullptr;
+}
+
+
+uint8_t Nes::PaletteRamInterface::Read(uint16_t addr)
+{
+	if ((addr % 0x0004) == 0)
+		return m_pData[0];
+	
+	return m_pData[addr];
+}
+
+bool Nes::PaletteRamInterface::Write(uint16_t addr, uint8_t data)
+{
+	addr &= 0x001F;
+	if (addr == 0x0010) addr = 0x0000;
+	if (addr == 0x0014) addr = 0x0004;
+	if (addr == 0x0018) addr = 0x0008;
+	if (addr == 0x001C) addr = 0x000C;
+	m_pData[addr] = data;
+	return true;
+}
+
+uint16_t Nes::PaletteRamInterface::GetSize()
+{
+	return 0x0020;
+}
+
+bool Nes::PaletteRamInterface::UseVirtualAddressSpace()
+{
+	return true;
 }

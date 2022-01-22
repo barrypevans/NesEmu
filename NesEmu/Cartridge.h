@@ -60,6 +60,6 @@ public:
 	CartridgeCPUInterface(Cartridge* pCart) { m_pCart = pCart; }
 	virtual uint8_t Read(uint16_t addr) override { return m_pCart->CpuRead(addr); }
 	virtual bool Write(uint16_t addr, uint8_t data) override { return m_pCart->CpuWrite(addr, data); }
-	virtual uint16_t GetSize() override { return 0xBFDF; /*0x4020 -> 0xFFFF*/ }
+	virtual uint16_t GetSize() override { return 0xBFE0; /*0x4020 -> 0xFFFF*/ }
 	virtual bool UseVirtualAddressSpace() override { return false; }
 };

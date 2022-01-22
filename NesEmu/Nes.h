@@ -23,12 +23,26 @@ public:
 
 	Bus* m_pPpuBus;
 	Ram* m_pNameTableRam;
-	Ram* m_pPaletteRam;
+	uint8_t* m_pPaletteRam;
 	Ppu2C02* m_pPpu;
 
 	Cartridge* m_pCart = nullptr;
 
 	uint64_t m_tickCount;
+
+
+	class PaletteRamInterface : public IMemoryDevice
+	{
+		// Inherited via IMemoryDevice
+		virtual uint8_t Read(uint16_t addr) override;
+		virtual bool Write(uint16_t addr, uint8_t data) override;
+		virtual uint16_t GetSize() override;
+		virtual bool UseVirtualAddressSpace() override;
+		uint8_t* m_pData;
+	public:
+		void SetMemory(uint8_t* data) { m_pData = data; };
+	};
+	PaletteRamInterface* m_pPaletteRamInterface;
 
 };
 
