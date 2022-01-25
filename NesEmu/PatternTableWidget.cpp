@@ -12,6 +12,7 @@ PatternTableWidget::PatternTableWidget()
 
     scene = new QGraphicsScene(this);
     scene->addItem(m_pPixmapItem);
+    
 
     this->setScene(scene);
     m_rawTable1 = (uint32_t*)malloc(128 * 128 * 4);
@@ -46,7 +47,7 @@ void PatternTableWidget::Render(Ppu2C02* pPpu)
         }
 
         m_pBackBuffer->convertFromImage(*m_pImage);
-
+        
         QPixmap* pTemp = m_pBackBuffer;
         m_pBackBuffer = m_pFrameBuffer;
         m_pFrameBuffer = pTemp;
@@ -56,6 +57,7 @@ void PatternTableWidget::Render(Ppu2C02* pPpu)
 void PatternTableWidget::UIRender()
 {
     m_pPixmapItem->setPixmap(*m_pFrameBuffer);
+    fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
 }
 
 void PatternTableWidget::keyPressEvent(QKeyEvent* ev)

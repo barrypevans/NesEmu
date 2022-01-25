@@ -68,8 +68,7 @@ void Ppu2C02::GetPatternTable(uint32_t* pData, uint8_t index, uint8_t palette)
 					uint16_t pixelIndexX = tile_x * 8 + (7 - pixel_y);
 					uint16_t pixelIndexY = tile_y * 8 + pixel_x;
 					uint16_t pixelIndex = pixelIndexX + pixelIndexY * 128;
-					uint32_t color = GetColorFromPalette(paletteIndex, palette);
-					pData[pixelIndex] = ((color & 0x0000FFFF) << 16) | ((color & 0xFFFF0000) >> 16);
+					pData[pixelIndex] = GetColorFromPalette(paletteIndex, palette);
 				}
 			}
 		}
