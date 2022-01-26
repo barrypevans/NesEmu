@@ -41,15 +41,32 @@ public:
 			{
 				struct
 				{
-					uint8_t m_1 : 1;
-					uint8_t m_garbo : 4;
+					uint8_t m_baseNameTableIndex : 2;
 					uint8_t m_incrementMode : 1;
-					uint8_t m_2 : 1;
+					uint8_t m_fgPatternTableIndex : 1;
+					uint8_t m_bgPatternTableIndex : 1;
+					uint8_t m_spriteSize : 1;
+					uint8_t m_masterSlave : 1;
 					bool m_enableNmi : 1;
 				};
 				uint8_t m_control;
 			};
-			uint8_t m_mask;
+			union
+			{
+				struct
+				{
+
+					uint8_t m_greyscale				: 1;
+					uint8_t m_showBackgroundEdge	: 1;
+					uint8_t m_showSpriteEdge		: 1;
+					uint8_t m_showBackground		: 1;
+					uint8_t m_showSprites			: 1;
+					uint8_t m_emphasizeRed			: 1;
+					uint8_t m_emphasizeGreen		: 1;
+					uint8_t m_emphasizeBlue			: 1;
+				};
+				uint8_t m_mask;
+			};
 			union
 			{
 				struct
@@ -65,7 +82,7 @@ public:
 			uint8_t m_OamAddr;
 			uint8_t m_OamData;
 			uint8_t m_scroll;
-			uint8_t m_addr;// not actually used
+			uint8_t m_addr;
 			uint8_t m_data;// not actually used
 		};
 		uint8_t m_registers[8];
