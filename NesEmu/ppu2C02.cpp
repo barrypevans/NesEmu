@@ -7,8 +7,26 @@ Ppu2C02::Ppu2C02(Bus* pPpuBus, Bus* pCpuBus)
 	m_pPpuBus = pPpuBus;
 	m_pRegisterInterface = new PPURegisterInterface();
 	m_pRegisterInterface->SetPpu(this);
+
 	memset(m_registers, 0, 8);
+
+	m_cycle = 0;
+	m_scanline = -1;
+
 	m_enableNmi = false;
+	m_vramAddr.m_addr = 0;
+	m_tramAddr.m_addr = 0;
+	m_fineX = 0;
+
+	m_internalTileIndex = 0;
+	m_internalAttributeData = 0;
+	m_internalPlaneLSB = 0;
+	m_internalPlaneMSB = 0;
+
+	m_interalShiftLSB = 0;
+	m_interalShiftMSB = 0;
+	m_interalShiftAttribLSB = 0;
+	m_interalShiftAttribMSB = 0;
 }
 
 Ppu2C02::~Ppu2C02()
@@ -41,20 +59,16 @@ void Ppu2C02::Tick()
 {
 	bool canRender = m_showBackground || m_showSprites;
 
-	if (m_cycle == 1 && m_scanline == -1) // clear vblank
+
+	if (m_scanline >= -1 && m_scanline < 240 && m_cycle != 0)
 	{
-		m_verticalBlank = 0;
-	}
-	else if (m_cycle == 1 && m_scanline == 241) // start vblank
-	{
-		m_verticalBlank = 1;
-		if (m_enableNmi)
-			m_nmi = true;
-	}
-	
-	if (m_scanline >= -1 && m_scanline < 240)
-	{
-		if ((m_cycle >= 1 && m_cycle <= 256) || (m_cycle >= 321 && m_cycle <= 338)) // do work!
+
+		if (m_cycle == 1 && m_scanline == -1) // clear vblank
+		{
+			m_verticalBlank = 0;
+		}
+
+		if ((m_cycle >= 1 && m_cycle <= 256) || (m_cycle >= 321 && m_cycle < 337)) // do work!
 		{
 			Internal_UpdateShiftRegisters();
 			uint8_t modCycle = m_cycle & 0x07;
@@ -65,7 +79,7 @@ void Ppu2C02::Tick()
 				Internal_SetShiftRegisters(); // beginning of the tile, buffer last tile shifters
 				uint16_t ntOffset = 0x2000; // base name table address
 				ntOffset = ntOffset | (m_vramAddr.m_addr & 0x0FFF); // coarse x, coarse y, nt x, nt y - get the nametable and tile
-				m_internalPatternTableIndex = m_pPpuBus->Read(ntOffset);
+				m_internalTileIndex = m_pPpuBus->Read(ntOffset);
 				break;
 			}
 			case kPpuPhaseATRead:
@@ -85,16 +99,16 @@ void Ppu2C02::Tick()
 			}
 			case kPpuPhaseBGTileLow:
 			{
-				uint16_t tableOffset = ((uint16_t) m_bgPatternTableIndex) << 12; // pattern table 1 starts at 0, pattern table 2 starts at 0x1000
-				uint16_t tileByteOffset = m_internalPatternTableIndex * 16; // each tile is two 8 byte planes, so multiply by 16 to get the correct byte offset.
+				uint16_t tableOffset = ((uint16_t) m_bgPatternTableIndex) << 12; // pattern table 1 starts at 0x0000, pattern table 2 starts at 0x1000
+				uint16_t tileByteOffset = m_internalTileIndex * 16; // each tile is two 8 byte planes, so multiply by 16 to get the correct byte offset.
 				uint16_t tileaddr = tableOffset + tileByteOffset + m_vramAddr.m_fineY; // row is 8 bits in a plane so just add fine y to increment row.
 				m_internalPlaneLSB = m_pPpuBus->Read(tileaddr);
 				break;
 			}
 			case kPpuPhaseBGTileHigh:
 			{
-				uint16_t tableOffset = ((uint16_t)m_bgPatternTableIndex) << 12; // pattern table 1 starts at 0, pattern table 2 starts at 0x1000
-				uint16_t tileByteOffset = m_internalPatternTableIndex * 16; // each tile is two 8 byte planes, so multiply by 16 to get the correct byte offset.
+				uint16_t tableOffset = ((uint16_t)m_bgPatternTableIndex) << 12; // pattern table 1 starts at 0x0000, pattern table 2 starts at 0x1000
+				uint16_t tileByteOffset = m_internalTileIndex * 16; // each tile is two 8 byte planes, so multiply by 16 to get the correct byte offset.
 				uint16_t tileaddr = tableOffset + tileByteOffset + m_vramAddr.m_fineY + 8; // row is 8 bits in a plane so just add fine y to increment row. add 8 bytes to get to the second bit plane
 				m_internalPlaneMSB = m_pPpuBus->Read(tileaddr);
 				break;
@@ -122,7 +136,7 @@ void Ppu2C02::Tick()
 		if (m_cycle == 256 && canRender) // reset horizontal for next scanline
 		{
 			// move to next scanline
-			if (m_vramAddr.m_fineY >= 7)// at the end of the nametable, coarse x wraps and nametable increments
+			if (m_vramAddr.m_fineY >= 7)
 			{
 				m_vramAddr.m_fineY = 0;
 				if (m_vramAddr.m_coarseY == 29) // we are in the name table here so swap nametables as expected
@@ -173,6 +187,14 @@ void Ppu2C02::Tick()
 		m_bufferedPixel = GetColorFromPalette(pixel, pallete);
 	}
 
+	if (m_cycle == 1 && m_scanline == 241) // start vblank
+	{
+		m_verticalBlank = 1;
+		if (m_enableNmi)
+			m_nmi = true;
+	}
+
+
 	m_frameCompleted = false;
 	m_cycle++;
 	if (m_cycle >= 341)
@@ -210,6 +232,38 @@ void Ppu2C02::GetPatternTable(uint32_t* pData, uint8_t index, uint8_t palette)
 					uint16_t pixelIndexX = tile_x * 8 + (7 - pixel_y);
 					uint16_t pixelIndexY = tile_y * 8 + pixel_x;
 					uint16_t pixelIndex = pixelIndexX + pixelIndexY * 128;
+					pData[pixelIndex] = GetColorFromPalette(paletteIndex, palette);
+				}
+			}
+		}
+	}
+}
+
+void Ppu2C02::GetNameTable(uint32_t* pData, uint8_t index, uint8_t palette)
+{
+	uint16_t patternTableOffset = 0;
+	for (uint8_t tile_x = 0; tile_x < 32; ++tile_x)
+	{
+		for (uint8_t tile_y = 0; tile_y < 30; ++tile_y)
+		{
+			uint16_t nameTableAddr = 0x2000 | (tile_x + tile_y * 32);
+			nameTableAddr |= 3096 * index;
+			uint8_t tileIndex = m_pPpuBus->Read(nameTableAddr);
+			uint16_t byteOffset = tileIndex * 16;
+			for (uint8_t pixel_x = 0; pixel_x < 8; ++pixel_x)
+			{
+				uint16_t baseAddr = patternTableOffset + byteOffset + pixel_x;
+				uint8_t tileLSB = m_pPpuBus->Read(baseAddr);
+				uint8_t tileMSB = m_pPpuBus->Read(baseAddr + 8);
+				for (uint8_t pixel_y = 0; pixel_y < 8; ++pixel_y)
+				{
+					uint8_t paletteIndex = (tileLSB & 0x01) << 1 | (tileMSB & 0x01);
+					tileLSB >>= 1;
+					tileMSB >>= 1;
+
+					uint16_t pixelIndexX = tile_x * 8 + (7 - pixel_y);
+					uint16_t pixelIndexY = tile_y * 8 + pixel_x;
+					uint16_t pixelIndex = pixelIndexX + pixelIndexY * 256;
 					pData[pixelIndex] = GetColorFromPalette(paletteIndex, palette);
 				}
 			}
@@ -292,8 +346,8 @@ bool Ppu2C02::PPURegisterInterface::Write(uint16_t addr, uint8_t data)
 	{
 		// control register controls which nametable to read/write
 		m_pPpu->m_control = data;
-		m_pPpu->m_tramAddr.m_ntx = m_pPpu->m_baseNameTableIndex & 0x01;
-		m_pPpu->m_tramAddr.m_nty = m_pPpu->m_baseNameTableIndex & 0x02;
+		m_pPpu->m_tramAddr.m_ntx = m_pPpu->m_nameTableX & 0x01;
+		m_pPpu->m_tramAddr.m_nty = m_pPpu->m_nameTableY & 0x02;
 	}
 	else if (addr == DATA_REG)
 	{
@@ -351,6 +405,7 @@ Ppu2C02::PPUNameTableInterface::PPUNameTableInterface(uint16_t size, Ppu2C02* pP
 	m_size = size;
 	m_pPpu = pPpu;
 	m_data = (uint8_t*)malloc(size);
+	memset(m_data, 0x00, size);
 }
 
 Ppu2C02::PPUNameTableInterface::~PPUNameTableInterface()
@@ -364,16 +419,24 @@ uint16_t Ppu2C02::PPUNameTableInterface::DoMirroring(uint16_t addr)
 	uint16_t mirroredAddr = addr;
 	if (m_pPpu->GetMirrorMode() == Cartridge::kMirrorModeHorizontal)
 	{
-		if (addr >= 0x0000 && addr <= 0x07FF)
+		if (addr >= 0x0000 && addr <= 0x03FF)
 			mirroredAddr = addr & 0x03FF;
-		else
+		if (addr >= 0x0400 && addr <= 0x07FF)
+			mirroredAddr = addr & 0x03FF;
+		if (addr >= 0x0800 && addr <= 0x0BFF)
+			mirroredAddr = (addr & 0x03FF) + 0x400;
+		if (addr >= 0x0C00 && addr <= 0x0FFF)
 			mirroredAddr = (addr & 0x03FF) + 0x400;
 	}
 	else if (m_pPpu->GetMirrorMode() == Cartridge::kMirrorModeVertical)
 	{
-		if ((addr >= 0x0000 && addr <= 0x03FF) || (addr >= 0x0800 && addr <= 0x0BFF))
+		if (addr >= 0x0000 && addr <= 0x03FF)
 			mirroredAddr = addr & 0x03FF;
-		else
+		if (addr >= 0x0400 && addr <= 0x07FF)
+			mirroredAddr = (addr & 0x03FF) + 0x400;
+		if (addr >= 0x0800 && addr <= 0x0BFF)
+			mirroredAddr = addr & 0x03FF;
+		if (addr >= 0x0C00 && addr <= 0x0FFF)
 			mirroredAddr = (addr & 0x03FF) + 0x400;
 	}
 	return mirroredAddr;

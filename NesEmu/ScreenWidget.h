@@ -20,4 +20,6 @@ public:
     QPixmap* m_pBackBuffer;
     QImage* m_pImage;
     QGraphicsPixmapItem* m_pPixmapItem;
+
+    uint32_t* m_rawTable1;
 };

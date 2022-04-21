@@ -10,6 +10,7 @@ public:
 
 	void Tick();
 	void GetPatternTable(uint32_t* pData, uint8_t index, uint8_t palette);
+	void GetNameTable(uint32_t* pData, uint8_t index, uint8_t palette);
 	uint32_t GetColorFromPalette(uint8_t index, uint8_t palette);
 	
 	Cartridge::MirrorMode GetMirrorMode() { return m_mirrorMode; }
@@ -68,7 +69,8 @@ public:
 			{
 				struct
 				{
-					uint8_t m_baseNameTableIndex : 2;
+					uint8_t m_nameTableX : 1;
+					uint8_t m_nameTableY : 1;
 					uint8_t m_incrementMode : 1;
 					uint8_t m_fgPatternTableIndex : 1;
 					uint8_t m_bgPatternTableIndex : 1;
@@ -120,12 +122,12 @@ public:
 		{
 			struct
 			{
-				uint8_t m_coarseX : 5;
-				uint8_t m_coarseY : 5;
-				uint8_t m_ntx : 1;
-				uint8_t m_nty : 1;
-				uint8_t m_fineY : 3;
-				uint8_t m_unused : 1;
+				uint16_t  m_coarseX : 5;
+				uint16_t  m_coarseY : 5;
+				uint16_t  m_ntx : 1;
+				uint16_t  m_nty : 1;
+				uint16_t  m_fineY : 3;
+				uint16_t  m_unused : 1;
 			};
 			uint16_t m_addr;
 		};
@@ -161,7 +163,7 @@ public:
 
 	bool m_nmi = false;
 
-	uint8_t m_internalPatternTableIndex;
+	uint8_t m_internalTileIndex;
 	uint8_t m_internalAttributeData;
 	uint8_t m_internalPlaneLSB;
 	uint8_t m_internalPlaneMSB;

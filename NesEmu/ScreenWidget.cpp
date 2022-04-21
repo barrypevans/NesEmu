@@ -5,7 +5,7 @@ ScreenWidget::ScreenWidget()
     m_pPixmapItem = new QGraphicsPixmapItem();
     m_pFrameBuffer = new QPixmap();
     m_pBackBuffer = new QPixmap();
-    m_pImage = new QImage(341, 261, QImage::Format_RGB32);
+    m_pImage = new QImage(256, 240, QImage::Format_RGB32);
 
     m_pPixmapItem->setPixmap(*m_pFrameBuffer);
 
@@ -13,6 +13,7 @@ ScreenWidget::ScreenWidget()
     scene->addItem(m_pPixmapItem);
 
     this->setScene(scene);
+    m_rawTable1 = (uint32_t*)malloc(256 * 240 * 4);
 }
 
 ScreenWidget::~ScreenWidget()
@@ -30,11 +31,23 @@ void ScreenWidget::Render(Ppu2C02* pPpu)
         QPixmap* pTemp = m_pBackBuffer;
         m_pBackBuffer = m_pFrameBuffer;
         m_pFrameBuffer = pTemp;
+
+        /*pPpu->GetNameTable(m_rawTable1, 1, 0);
+        for (int i = 0; i < 256; i++)
+        {
+            for (int j = 0; j < 240; j++)
+            {
+                m_pImage->setPixel(i, j, m_rawTable1[i + j * 256]);
+            }
+        }*/
     }
 
-    if (pPpu->m_scanline < 0) return;
+    if (pPpu->m_scanline < 0 || pPpu->m_scanline >=240 || pPpu->m_cycle >=256) return;
 
-    m_pImage->setPixel(pPpu->m_cycle, pPpu->m_scanline, pPpu->m_bufferedPixel);
+   m_pImage->setPixel(pPpu->m_cycle, pPpu->m_scanline, pPpu->m_bufferedPixel); 
+
+
+  
 }
 
 void ScreenWidget::UIRender()
