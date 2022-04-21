@@ -2,33 +2,29 @@
 
 Nes::Nes()
 {
-	m_pCpuBus = new Bus();
-	m_pCpuRam = new Ram(0x0800);
-
+	m_pCpuBus = new Bus(); 
 	m_pPpuBus = new Bus();
-	m_pNameTableRam = new Ram(0x1000);
 	
-	m_pPaletteRam = (uint8_t*)malloc(0x0020);
-	memset(m_pPaletteRam, 0, 0x0020);
-	m_pPaletteRamInterface = new PaletteRamInterface();
-	m_pPaletteRamInterface->SetMemory(m_pPaletteRam);
-
-
-	// hook up on board ppu ram
-	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x2000);
-	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x3000, 0x3EFF); // 2k name table is mirrored
-	m_pPpuBus->RegisterMemoryDevice(m_pPaletteRamInterface, 0x3F00);
-
-	// first 2k of ram mirror across the first 8k of address bus
-	m_pCpuBus->RegisterMemoryDeviceMirror(m_pCpuRam, 0x0000, 3);
-
-
 	// hook cpu and ppu up to buses
 	m_pCpu = new Cpu6502(m_pCpuBus, m_pPpuBus);
 	m_pPpu = new Ppu2C02(m_pPpuBus, m_pCpuBus);
 
+	m_pCpuRam = new Ram(0x0800);
+	// first 2k of ram mirror across the first 8k of address bus
+	m_pCpuBus->RegisterMemoryDeviceMirror(m_pCpuRam, 0x0000, 3);
 	m_pCpuBus->RegisterMemoryDeviceMirror(m_pPpu->m_pRegisterInterface, 0x2000, 400);
+	
 
+	// hook up on board palette memory
+	m_pPaletteRam = (uint8_t*)malloc(0x0020);
+	m_pPaletteRamInterface = new PaletteRamInterface();
+	m_pPaletteRamInterface->SetMemory(m_pPaletteRam);
+
+	// hook up on board ppu ram
+	m_pNameTableRam = new Ppu2C02::PPUNameTableInterface(0x0800, m_pPpu);
+	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x2000, 0x2FFF);
+	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x3000, 0x3EFF); // 2k name table is mirrored
+	m_pPpuBus->RegisterMemoryDevice(m_pPaletteRamInterface, 0x3F00);
 
 	m_tickCount = 0;
 }
@@ -68,8 +64,16 @@ void Nes::InsertCartridge(std::string romPath)
 	m_pCart = new Cartridge(romPath, m_pCpuBus, m_pPpuBus);
 
 	// If cartrigfe fails to load, remove it.
-	if (!m_pCart->IsCatridgeReady()) RemoveCartridge();
+	if (!m_pCart->IsCatridgeReady())
+	{
+		RemoveCartridge();
+	}
+	else
+	{
+		m_pPpu->SetMirrorMode(m_pCart->m_mirrorMode);
+	}
 	m_pCpu->Reset();
+
 }
 
 void Nes::RemoveCartridge()

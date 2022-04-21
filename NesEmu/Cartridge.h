@@ -21,6 +21,15 @@ public:
 	bool PpuWrite(uint16_t addr, uint8_t data);
 
 	bool IsCatridgeReady() { return m_cartridgeReady; }
+	
+	enum MirrorMode
+	{
+		kMirrorModeHorizontal,
+		kMirrorModeVertical,
+		kMirrorModeOneScreenLo,
+		kMirrorModeOneScreenHi
+	}m_mirrorMode = kMirrorModeHorizontal;
+
 private:
 
 	bool InitMapper();

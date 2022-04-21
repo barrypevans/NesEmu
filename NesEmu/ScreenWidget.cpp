@@ -22,10 +22,7 @@ ScreenWidget::~ScreenWidget()
 
 void ScreenWidget::Render(Ppu2C02* pPpu)
 {
-    if (pPpu->m_scanline < 0) return;
-
-    m_pImage->setPixel(pPpu->m_cycle, pPpu->m_scanline, rand());
-
+    
     if (pPpu->m_frameCompleted)
     {
         m_pBackBuffer->convertFromImage(*m_pImage);
@@ -34,11 +31,16 @@ void ScreenWidget::Render(Ppu2C02* pPpu)
         m_pBackBuffer = m_pFrameBuffer;
         m_pFrameBuffer = pTemp;
     }
+
+    if (pPpu->m_scanline < 0) return;
+
+    m_pImage->setPixel(pPpu->m_cycle, pPpu->m_scanline, pPpu->m_bufferedPixel);
 }
 
 void ScreenWidget::UIRender()
 {
     m_pPixmapItem->setPixmap(*m_pFrameBuffer);
+    fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
 }
 
 

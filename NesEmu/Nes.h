@@ -22,7 +22,7 @@ public:
 	Cpu6502* m_pCpu;
 
 	Bus* m_pPpuBus;
-	Ram* m_pNameTableRam;
+	Ppu2C02::PPUNameTableInterface* m_pNameTableRam;
 	uint8_t* m_pPaletteRam;
 	Ppu2C02* m_pPpu;
 

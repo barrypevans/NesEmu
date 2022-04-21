@@ -85,6 +85,7 @@ bool Cartridge::PpuWrite(uint16_t addr, uint8_t data)
 bool Cartridge::InitMapper()
 {
 	m_mapperId = ((m_iNesHeader.mapper2 >> 4) << 4) | (m_iNesHeader.mapper1 << 4);
+	m_mirrorMode = (m_iNesHeader.mapper1 & 0x01) ? kMirrorModeVertical : kMirrorModeHorizontal;
 	switch (0)
 	{
 	case 0:

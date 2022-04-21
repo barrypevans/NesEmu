@@ -1,5 +1,6 @@
 #pragma once
 #include "Bus.h"
+#include "Cartridge.h"
 
 class Ppu2C02
 {
@@ -10,12 +11,21 @@ public:
 	void Tick();
 	void GetPatternTable(uint32_t* pData, uint8_t index, uint8_t palette);
 	uint32_t GetColorFromPalette(uint8_t index, uint8_t palette);
+	
+	Cartridge::MirrorMode GetMirrorMode() { return m_mirrorMode; }
+	void SetMirrorMode(Cartridge::MirrorMode mirrorMode) { m_mirrorMode = mirrorMode; }
+
+	void Internal_SetShiftRegisters();
+	void Internal_UpdateShiftRegisters();
+
 	Bus* m_pPpuBus;
 	Bus* m_pCpuBus;
 
 	int16_t m_scanline = 0;
 	int16_t m_cycle = 0;
 	bool m_frameCompleted = false;
+
+	Cartridge::MirrorMode m_mirrorMode = Cartridge::kMirrorModeVertical;
 
 	class PPURegisterInterface : public IMemoryDevice
 	{
@@ -32,6 +42,23 @@ public:
 
 	};
 	PPURegisterInterface* m_pRegisterInterface;
+
+	class PPUNameTableInterface : public IMemoryDevice
+	{
+
+		// Inherited via IMemoryDevice
+		virtual uint8_t Read(uint16_t addr) override;
+		virtual bool Write(uint16_t addr, uint8_t data) override;
+		virtual uint16_t GetSize() override;
+		virtual bool UseVirtualAddressSpace() override;
+		uint16_t m_size;
+	public:
+		PPUNameTableInterface(uint16_t size, Ppu2C02* pPpu);
+		~PPUNameTableInterface();
+		uint16_t DoMirroring(uint16_t addr);
+		uint8_t* m_data;
+		Ppu2C02* m_pPpu;
+	};
 
 	union
 	{
@@ -81,12 +108,31 @@ public:
 			};
 			uint8_t m_OamAddr;
 			uint8_t m_OamData;
-			uint8_t m_scroll;
-			uint8_t m_addr;
+			uint8_t m_scroll; // not actually used, replaced by loopy
+			uint8_t m_addr;// not actually used, replaced by loopy
 			uint8_t m_data;// not actually used
 		};
 		uint8_t m_registers[8];
 	};
+	struct Loopy
+	{
+		union //Loopy Register
+		{
+			struct
+			{
+				uint8_t m_coarseX : 5;
+				uint8_t m_coarseY : 5;
+				uint8_t m_ntx : 1;
+				uint8_t m_nty : 1;
+				uint8_t m_fineY : 3;
+				uint8_t m_unused : 1;
+			};
+			uint16_t m_addr;
+		};
+	};
+	uint8_t m_fineX = 0x00;
+	Loopy m_vramAddr;
+	Loopy m_tramAddr;
 
 	enum
 	{
@@ -100,11 +146,32 @@ public:
 		DATA_REG
 	};
 
+	enum
+	{
+		kPpuPhaseNTRead		 = 1,
+		kPpuPhaseATRead		 = 3,
+		kPpuPhaseBGTileLow	 = 5,
+		kPpuPhaseBGTileHigh	 = 7,
+		kPpuPhaseBGTileComplete = 0,
+	};
+
+
 	uint8_t m_addrLatch = 0;
 	uint8_t m_bufferedData = 0;
-	uint16_t m_bufferedAddr = 0;
 
 	bool m_nmi = false;
+
+	uint8_t m_internalPatternTableIndex;
+	uint8_t m_internalAttributeData;
+	uint8_t m_internalPlaneLSB;
+	uint8_t m_internalPlaneMSB;
+
+	uint16_t m_interalShiftLSB;
+	uint16_t m_interalShiftMSB;
+	uint16_t m_interalShiftAttribLSB;
+	uint16_t m_interalShiftAttribMSB;
+
+	uint32_t m_bufferedPixel = 0;
 
 	uint32_t m_debugPalette[4] = {0x00000000, 0xFF00FF00, 0xFF0000FF, 0xFFFF0000};
 
