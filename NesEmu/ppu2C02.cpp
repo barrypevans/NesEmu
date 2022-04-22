@@ -51,7 +51,7 @@ void Ppu2C02::Internal_UpdateShiftRegisters()
 	m_interalShiftLSB <<= 1;
 	m_interalShiftMSB <<= 1;
 	m_interalShiftAttribLSB <<= 1;
-	m_interalShiftAttribLSB <<= 1;
+	m_interalShiftAttribMSB <<= 1;
 }
 
 
@@ -84,7 +84,7 @@ void Ppu2C02::Tick()
 			}
 			case kPpuPhaseATRead:
 			{
-				uint16_t atOffset = ((((uint16_t)m_vramAddr.m_coarseX) >> 2) | (((uint16_t)m_vramAddr.m_coarseY << 1) & 0xF8)); // the top 3 coarse bits are the same as the at indices
+				uint16_t atOffset = (((uint16_t)m_vramAddr.m_coarseX) >> 2) | ((((uint16_t)m_vramAddr.m_coarseY ) << 1) & 0xF8); // the top 3 coarse bits are the same as the at indices
 				atOffset = atOffset | (((uint16_t)m_vramAddr.m_ntx) << 10) | (((uint16_t)m_vramAddr.m_nty) << 11); // 11th and 12th bit control nametables as they start at 23c0, 27c0, 2bc0 and 2fc0
 				atOffset = 0x23C0 | atOffset; // base address is 23c0
 				m_internalAttributeData = m_pPpuBus->Read(atOffset);
@@ -182,8 +182,8 @@ void Ppu2C02::Tick()
 		uint8_t msb = (shifterFlag & m_interalShiftMSB) != 0;
 		uint8_t attrLsb = (shifterFlag & m_interalShiftAttribLSB) != 0;
 		uint8_t attrMsb = (shifterFlag & m_interalShiftAttribMSB) != 0;
-		uint8_t pixel = (lsb & 0x01) << 1 | (msb & 0x01);
-		uint8_t pallete = (attrLsb & 0x01) << 1 | (attrMsb & 0x01);
+		uint8_t pixel = (msb & 0x01) << 1 | (lsb & 0x01);
+		uint8_t pallete = (attrMsb & 0x01) << 1 | (attrLsb & 0x01);
 		m_bufferedPixel = GetColorFromPalette(pixel, pallete);
 	}
 

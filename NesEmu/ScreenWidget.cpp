@@ -32,7 +32,7 @@ void ScreenWidget::Render(Ppu2C02* pPpu)
         m_pBackBuffer = m_pFrameBuffer;
         m_pFrameBuffer = pTemp;
 
-        /*pPpu->GetNameTable(m_rawTable1, 1, 0);
+       /* pPpu->GetNameTable(m_rawTable1, 0, 0);
         for (int i = 0; i < 256; i++)
         {
             for (int j = 0; j < 240; j++)
@@ -42,9 +42,9 @@ void ScreenWidget::Render(Ppu2C02* pPpu)
         }*/
     }
 
-    if (pPpu->m_scanline < 0 || pPpu->m_scanline >=240 || pPpu->m_cycle >=256) return;
+    if (pPpu->m_scanline < 0 || pPpu->m_scanline >=240 || (pPpu->m_cycle - 2) > 255 || (pPpu->m_cycle - 2) < 0) return;
 
-   m_pImage->setPixel(pPpu->m_cycle, pPpu->m_scanline, pPpu->m_bufferedPixel); 
+    m_pImage->setPixel(pPpu->m_cycle-2, pPpu->m_scanline, pPpu->m_bufferedPixel); 
 
 
   

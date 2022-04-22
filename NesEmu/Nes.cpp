@@ -23,7 +23,7 @@ Nes::Nes()
 	// hook up on board ppu ram
 	m_pNameTableRam = new Ppu2C02::PPUNameTableInterface(0x0800, m_pPpu);
 	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x2000, 0x2FFF);
-	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x3000, 0x3EFF); // 2k name table is mirrored
+	m_pPpuBus->RegisterMemoryDevice(m_pNameTableRam, 0x3000, 0x3EFF); // 4 1k name tables are mirrored
 	m_pPpuBus->RegisterMemoryDevice(m_pPaletteRamInterface, 0x3F00);
 
 	m_tickCount = 0;
