@@ -103,6 +103,14 @@ void NesEmu::LoadCartridge()
 
 void NesEmu::Tick()
 {
+
+	if (m_pScreenWidget->m_controllerValues != m_pNes->m_pIOBusInterface->m_controllerState[0])
+	{
+		qDebug() << m_pNes->m_pPpu->m_pOamRaw[0];
+	}
+	m_pNes->m_pIOBusInterface->m_controllerState[0] = m_pScreenWidget->m_controllerValues;
+	
+
 	m_pNes->Tick();
 	m_pScreenWidget->Render(m_pNes->m_pPpu);
 	m_pPatternTableWidget->Render(m_pNes->m_pPpu);

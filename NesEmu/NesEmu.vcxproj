@@ -110,6 +110,7 @@
     <ClCompile Include="DisassemblyWidget.cpp" />
     <ClCompile Include="Inbox.cpp" />
     <ClCompile Include="INesFile.cpp" />
+    <ClCompile Include="IOBusInterface.cpp" />
     <ClCompile Include="Mapper000.cpp" />
     <ClCompile Include="MemoryWidget.cpp" />
     <ClCompile Include="Messager.cpp" />
@@ -141,6 +142,7 @@
     <ClInclude Include="IMemoryDevice.h" />
     <ClInclude Include="Inbox.h" />
     <ClInclude Include="INesFile.h" />
+    <ClInclude Include="IOBusInterface.h" />
     <ClInclude Include="Mapper000.h" />
     <ClInclude Include="MemoryWidget.h" />
     <ClInclude Include="Messager.h" />

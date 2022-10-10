@@ -2,7 +2,7 @@
 
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>
-
+#include <QKeyEvent>
 #include "ppu2C02.h"
 
 class ScreenWidget : public QGraphicsView
@@ -11,6 +11,9 @@ class ScreenWidget : public QGraphicsView
 public:
     ScreenWidget();
     ~ScreenWidget();
+
+    void keyPressEvent(QKeyEvent* e);
+    void keyReleaseEvent(QKeyEvent* e);
 
     void Render(Ppu2C02* pPpu);
     void UIRender();
@@ -22,4 +25,6 @@ public:
     QGraphicsPixmapItem* m_pPixmapItem;
 
     uint32_t* m_rawTable1;
+
+    uint8_t m_controllerValues;
 };

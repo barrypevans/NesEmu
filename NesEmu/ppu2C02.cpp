@@ -52,6 +52,23 @@ void Ppu2C02::Internal_UpdateShiftRegisters()
 	m_interalShiftMSB <<= 1;
 	m_interalShiftAttribLSB <<= 1;
 	m_interalShiftAttribMSB <<= 1;
+
+
+	if(m_showSprites && m_cycle > 0 && m_cycle < 258)
+	{ 
+		for (int iSprite = 0; iSprite < m_numSprites; ++iSprite)
+		{
+			if (m_pSpriteQueue[iSprite].x > 0)
+			{
+				m_pSpriteQueue[iSprite].x--;
+			}
+			else
+			{
+				m_spriteShiftersHigh[iSprite] <<= 1;
+				m_spriteShiftersLow[iSprite] <<= 1;
+			}
+		}
+	}
 }
 
 
@@ -66,6 +83,14 @@ void Ppu2C02::Tick()
 		if (m_cycle == 1 && m_scanline == -1) // clear vblank
 		{
 			m_verticalBlank = 0;
+
+			// at the end of the frame, clear sprite shifters and overflow bit
+			m_spriteOverflow = 0;
+			for (int iSprite = 0; iSprite < m_numSprites; ++iSprite)
+			{
+				m_spriteShiftersHigh[iSprite] = 0;
+				m_spriteShiftersLow[iSprite]  = 0;
+			}
 		}
 
 		if ((m_cycle >= 1 && m_cycle <= 256) || (m_cycle >= 321 && m_cycle < 337)) // do work!
@@ -172,9 +197,108 @@ void Ppu2C02::Tick()
 			m_vramAddr.m_nty = m_tramAddr.m_nty;
 			m_vramAddr.m_fineY = m_tramAddr.m_fineY;
 		}
+		
+
+		/// Sprite Rendering here
+		// Find which sprites need to be drawn (at the top of the frame)
+		if (m_cycle == 257 && m_scanline > -1) 
+		{
+			// clear sprites
+			memset(m_pSpriteQueue, 0xff, sizeof(OamEntry) * 8);
+		
+			// round up all of the visible sprites
+			m_numSprites = 0;
+			uint8_t iSprite = 0;
+			while (m_numSprites < 9 && iSprite < 64)
+			{
+				OamEntry sprite = m_pOam[iSprite];
+				int yDiff = (int)m_scanline - (int)sprite.y;
+				int spriteHeight = m_spriteSize ? 16 : 8;
+				if (yDiff > 0 && yDiff < spriteHeight && m_numSprites < 8)
+				{
+					m_pSpriteQueue[m_numSprites] = sprite;
+					m_numSprites++;
+				}
+				iSprite++;
+			}
+			m_spriteOverflow = (iSprite >= 9);
+		}
+
+		if (m_cycle == 340) // at the end of the scanline, we are going to draw the sprites
+		{
+			for (int iSprite = 0; iSprite < 8; ++iSprite)
+			{
+				OamEntry sprite = m_pSpriteQueue[iSprite];
+				uint16_t tileAddrLow;
+				uint16_t tileAddrHigh;
+				
+				uint16_t rowOffset = (m_scanline - sprite.y);
+				if (!m_spriteSize)
+				{
+					uint16_t tableOffset = m_fgPatternTableIndex * 0x1000;
+					tileAddrLow = tableOffset + sprite.tileNumber8x8 * 16;
+					if (sprite.flipVert)
+						rowOffset = 7 - rowOffset;
+					tileAddrLow += rowOffset;
+				}
+				else
+				{
+					uint16_t tableOffset = sprite.tileBank * 0x1000;
+					bool isTop = rowOffset < 8;
+					if (isTop)
+					{
+						uint16_t tileNumberOffset = sprite.tileNumber * 16;
+						if (sprite.flipVert)
+						{
+							rowOffset = 7 - rowOffset;
+							tileNumberOffset++;
+						}
+						tileAddrLow = rowOffset + tileNumberOffset;
+						tileAddrLow += rowOffset;
+					}
+					else
+					{
+						uint16_t tileNumberOffset = sprite.tileNumber * 16;
+						if (sprite.flipVert)
+							rowOffset = 7 - rowOffset;
+						else
+							tileNumberOffset++;
+						tileAddrLow = rowOffset + tileNumberOffset;
+						tileAddrLow += rowOffset;
+					}
+				}
+
+				uint8_t tileDataLow;
+				uint8_t tileDataHigh;
+				tileAddrHigh = tileAddrLow + 8;
+				tileDataLow = m_pPpuBus->Read(tileAddrLow);
+				tileDataHigh = m_pPpuBus->Read(tileAddrHigh);
+
+				if (sprite.flipHor)
+				{
+					// Do horizontal flipping
+					// https://stackoverflow.com/a/2602885
+					auto flipbyte = [](uint8_t b)
+					{
+						b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+						b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+						b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+						return b;
+					};
+					tileDataLow = flipbyte(tileDataLow);
+					tileDataHigh = flipbyte(tileDataHigh);
+				}
+
+				m_spriteShiftersLow[iSprite] = tileDataLow;
+				m_spriteShiftersHigh[iSprite] = tileDataHigh;
+			}
+		}
+
 	}
 
 	// put pixels on the screeen!!!
+	uint8_t bgPixel = 0;
+	uint8_t bgPallete = 0;
 	if (m_showBackground)
 	{
 		uint16_t shifterFlag = 0x8000 >> m_fineX;
@@ -182,10 +306,68 @@ void Ppu2C02::Tick()
 		uint8_t msb = (shifterFlag & m_interalShiftMSB) != 0;
 		uint8_t attrLsb = (shifterFlag & m_interalShiftAttribLSB) != 0;
 		uint8_t attrMsb = (shifterFlag & m_interalShiftAttribMSB) != 0;
-		uint8_t pixel = (msb & 0x01) << 1 | (lsb & 0x01);
-		uint8_t pallete = (attrMsb & 0x01) << 1 | (attrLsb & 0x01);
-		m_bufferedPixel = GetColorFromPalette(pixel, pallete);
+		bgPixel = (msb & 0x01) << 1 | (lsb & 0x01);
+		bgPallete = (attrMsb & 0x01) << 1 | (attrLsb & 0x01);
 	}
+
+	uint32_t fgPixel = 0;
+	uint8_t fgPallete = 0;
+	uint8_t fgPriority = 1;
+	if (m_showSprites)
+	{
+		for (int iSprite = 0; iSprite < m_numSprites; ++iSprite)
+		{
+			OamEntry sprite = m_pSpriteQueue[iSprite];
+
+			if (sprite.x == 0)// check if this sprite is actually being rendered
+			{
+				
+				uint8_t lsb = (m_spriteShiftersLow[iSprite] & 0x80) != 0;
+				uint8_t msb = (m_spriteShiftersHigh[iSprite] & 0x80) != 0;
+				
+				fgPixel = (msb & 0x01) << 1 | (lsb & 0x01);
+				if (fgPixel != 0)
+				{
+					fgPallete = sprite.palette + 0x04;
+					fgPriority = sprite.priority == 0;
+					break;
+				}
+			}
+		}
+	}
+
+	uint8_t pixel = 0;
+	uint8_t pallete = 0;
+
+	/*if (fgPixel == 0 && bgPixel == 0)
+	{
+		//Do nothing, we are using the background trans color
+	}*/
+	if (bgPixel == 0 && fgPixel > 0)
+	{
+		pixel = fgPixel;
+		pallete = fgPallete;
+	}
+	else if (bgPixel > 0 && fgPixel == 0)
+	{
+		pixel = bgPixel;
+		pallete = bgPallete;
+	}
+	else if (bgPixel > 0 && fgPixel > 0)
+	{
+		if (fgPriority)
+		{
+			pixel = fgPixel;
+			pallete = fgPallete;
+		}
+		else
+		{
+			pixel = bgPixel;
+			pallete = bgPallete;
+		}
+	}
+
+	m_bufferedPixel = GetColorFromPalette(pixel, pallete);
 
 	if (m_cycle == 1 && m_scanline == 241) // start vblank
 	{
@@ -306,6 +488,11 @@ uint8_t Ppu2C02::PPURegisterInterface::Read(uint16_t addr)
 		return outputData;
 	}
 
+	if (addr == OAM_DATA_REG)
+	{
+		return m_pPpu->m_pOamRaw[m_pPpu->m_OamAddr];
+	}
+
 	return 0x00;
 }
 
@@ -358,12 +545,16 @@ bool Ppu2C02::PPURegisterInterface::Write(uint16_t addr, uint8_t data)
 	{
 		m_pPpu->m_registers[addr] = data;
 	}
-	else
+	else if (addr == OAM_ADDR_REG)
 	{
-		return false;
+		m_pPpu->m_OamAddr = data;
 	}
-	
-	return true;
+	else if (addr == OAM_DATA_REG)
+	{
+		m_pPpu->m_pOamRaw[m_pPpu->m_OamAddr] = data;
+	}
+
+	return false;
 }
 
 uint16_t Ppu2C02::PPURegisterInterface::GetSize()

@@ -89,6 +89,8 @@ public:
 
 	uint32_t m_cycles = 0;
 
+	bool m_dmaInitiated = false;
+
 	// Debug
 	void LogState();
 };

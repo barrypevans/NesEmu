@@ -4,6 +4,7 @@
 #include "ppu2C02.h"
 #include "Ram.h"
 #include "Cartridge.h"
+#include "IOBusInterface.h"
 
 class Nes
 {
@@ -17,9 +18,12 @@ public:
 	void RemoveCartridge();
 	bool HasCartridge() { return m_pCart != nullptr; }
 
+	void StartDma() { m_dmaActive = true; }
+
 	Bus* m_pCpuBus;
 	Ram* m_pCpuRam;
 	Cpu6502* m_pCpu;
+	IOBusInterface* m_pIOBusInterface;
 
 	Bus* m_pPpuBus;
 	Ppu2C02::PPUNameTableInterface* m_pNameTableRam;
@@ -30,6 +34,7 @@ public:
 
 	uint64_t m_tickCount;
 
+	
 
 	class PaletteRamInterface : public IMemoryDevice
 	{
@@ -44,5 +49,12 @@ public:
 	};
 	PaletteRamInterface* m_pPaletteRamInterface;
 
+
+	// DMA
+	uint8_t m_dmaPage = 0;
+	uint8_t m_dmaAddr = 0;
+	uint8_t m_dmaData = 0;
+	bool m_dmaActive = false;
+	bool m_dmaWaitForOddCycle = false;
 };
 

@@ -175,6 +175,38 @@ public:
 
 	uint32_t m_bufferedPixel = 0;
 
+	struct OamEntry
+	{
+		uint8_t y;
+		union
+		{
+			struct {
+				uint8_t tileNumber : 7;
+				uint8_t tileBank : 1;
+			};
+			uint8_t tileNumber8x8;
+		};
+		union
+		{
+			struct {
+				uint8_t palette : 2;
+				uint8_t padding : 3;
+				uint8_t priority : 1;
+				uint8_t flipHor : 1;
+				uint8_t flipVert : 1;
+			};
+			uint8_t attributes;
+		};
+		uint8_t x;
+
+	}m_pOam[64];
+	uint8_t* m_pOamRaw = (uint8_t*)m_pOam;
+
+	OamEntry m_pSpriteQueue[8];
+	uint8_t m_numSprites = 0;
+	uint8_t m_spriteShiftersHigh[8];
+	uint8_t m_spriteShiftersLow[8];
+
 	uint32_t m_debugPalette[4] = {0x00000000, 0xFF00FF00, 0xFF0000FF, 0xFFFF0000};
 
 	uint32_t m_paletteColors[0x40] = 
